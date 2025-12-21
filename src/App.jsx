@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ConfigProvider } from 'antd';
 import esES from 'antd/locale/es_ES';
 import MainLayout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Inventario from './pages/Inventario';
-import EntradaMercancia from './pages/EntradaMercancia';
 import PuntoVenta from './pages/PuntoVenta';
 import './App.css';
 
@@ -23,10 +24,17 @@ function App() {
     >
       <Router>
         <Routes>
-          <Route path="/" element={<MainLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="inventario" element={<Inventario />} />
-            <Route path="entrada" element={<EntradaMercancia />} />
             <Route path="pos" element={<PuntoVenta />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
@@ -37,4 +45,3 @@ function App() {
 }
 
 export default App;
-

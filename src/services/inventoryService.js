@@ -10,41 +10,86 @@ import { supabase } from '../config/supabaseClient';
 
 /**
  * Obtener todos los medicamentos con su stock total
+ * Muestra TODOS los medicamentos, tengan o no lotes asignados
  */
 export const getMedicamentos = async () => {
     try {
         const { data, error } = await supabase
-            .from('vista_stock_total')
-            .select('*')
+            .from('medicamentos')
+            .select(`
+                id,
+                nombre,
+                descripcion,
+                principio_activo,
+                laboratorio,
+                categoria_id,
+                stock_minimo,
+                activo,
+                categorias!inner(nombre)
+            `)
+            .eq('activo', true)
             .order('nombre', { ascending: true });
 
         if (error) throw error;
-        return { success: true, data };
+
+        // Obtener stock de lotes para cada medicamento
+        const medicamentosConStock = await Promise.all(
+            data.map(async (med) => {
+                const { data: lotes } = await supabase
+                    .from('lotes')
+                    .select('stock_actual, fecha_vencimiento, precio_venta')
+                    .eq('medicamento_id', med.id)
+                    .eq('activo', true);
+
+                const total_disponible = lotes?.reduce((sum, l) => sum + l.stock_actual, 0) || 0;
+                const proximo_vencimiento = lotes?.length > 0
+                    ? lotes.reduce((min, l) => l.fecha_vencimiento < min ? l.fecha_vencimiento : min, lotes[0].fecha_vencimiento)
+                    : null;
+                const precio_venta = lotes?.length > 0 ? lotes[0].precio_venta : null;
+                const cantidad_lotes_activos = lotes?.length || 0;
+
+                // Calcular estado de stock
+                let estado_stock = 'ALTO';
+                if (total_disponible < med.stock_minimo) {
+                    estado_stock = 'BAJO';
+                } else if (total_disponible < med.stock_minimo * 1.5) {
+                    estado_stock = 'MEDIO';
+                }
+
+                // Calcular estado de vencimiento
+                let estado_vencimiento = 'NORMAL';
+                if (proximo_vencimiento) {
+                    const diasHastaVencimiento = Math.floor(
+                        (new Date(proximo_vencimiento) - new Date()) / (1000 * 60 * 60 * 24)
+                    );
+                    if (diasHastaVencimiento < 30) {
+                        estado_vencimiento = 'CRITICO';
+                    } else if (diasHastaVencimiento < 90) {
+                        estado_vencimiento = 'ADVERTENCIA';
+                    }
+                }
+
+                return {
+                    ...med,
+                    categoria: med.categorias.nombre,
+                    total_disponible,
+                    proximo_vencimiento,
+                    precio_venta,
+                    cantidad_lotes_activos,
+                    estado_stock,
+                    estado_vencimiento,
+                };
+            })
+        );
+
+        return { success: true, data: medicamentosConStock };
     } catch (error) {
         console.error('Error al obtener medicamentos:', error);
         return { success: false, error: error.message };
     }
 };
 
-/**
- * Buscar medicamento por código de barras
- */
-export const getMedicamentoByBarcode = async (codigoBarras) => {
-    try {
-        const { data, error } = await supabase
-            .from('medicamentos')
-            .select('*, categorias(nombre)')
-            .eq('codigo_barras', codigoBarras)
-            .eq('activo', true)
-            .single();
 
-        if (error) throw error;
-        return { success: true, data };
-    } catch (error) {
-        console.error('Error al buscar medicamento:', error);
-        return { success: false, error: error.message };
-    }
-};
 
 /**
  * Buscar medicamentos por nombre o principio activo
@@ -55,7 +100,7 @@ export const searchMedicamentos = async (query) => {
         const { data, error } = await supabase
             .from('vista_stock_total')
             .select('*')
-            .or(`nombre.ilike.%${query}%,principio_activo.ilike.%${query}%,codigo_barras.ilike.%${query}%`)
+            .or(`nombre.ilike.%${query}%,principio_activo.ilike.%${query}%`)
             .order('nombre', { ascending: true })
             .limit(10);
 
@@ -107,13 +152,13 @@ export const updateMedicamento = async (id, medicamentoData) => {
 };
 
 /**
- * Eliminar medicamento (soft delete)
+ * Eliminar medicamento (eliminación física)
  */
 export const deleteMedicamento = async (id) => {
     try {
         const { data, error } = await supabase
             .from('medicamentos')
-            .update({ activo: false })
+            .delete()
             .eq('id', id)
             .select()
             .single();
@@ -407,6 +452,25 @@ export const getCategorias = async () => {
     }
 };
 
+/**
+ * Crear una nueva categoría
+ */
+export const createCategoria = async (nombre) => {
+    try {
+        const { data, error } = await supabase
+            .from('categorias')
+            .insert([{ nombre }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error al crear categoría:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 // ============================================
 // MOVIMIENTOS (HISTORIAL)
 // ============================================
@@ -436,7 +500,6 @@ export const getMovimientos = async (limit = 50) => {
 
 export default {
     getMedicamentos,
-    getMedicamentoByBarcode,
     searchMedicamentos,
     createMedicamento,
     updateMedicamento,

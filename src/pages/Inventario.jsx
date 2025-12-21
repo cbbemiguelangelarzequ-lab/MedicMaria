@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+    Tabs,
     Table,
     Input,
     Select,
@@ -11,55 +12,68 @@ import {
     Tag,
     FloatButton,
     Popconfirm,
+    Card,
+    InputNumber,
+    DatePicker,
+    Alert,
+    Divider,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { getMedicamentos, createMedicamento, updateMedicamento, deleteMedicamento, getCategorias } from '../services/inventoryService';
+import {
+    PlusOutlined,
+    SearchOutlined,
+    EditOutlined,
+    DeleteOutlined,
+    CheckOutlined,
+    UnorderedListOutlined,
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import BarcodeScanner from '../components/BarcodeScanner';
 import ExpirationBadge from '../components/ExpirationBadge';
 import StockIndicator from '../components/StockIndicator';
+import {
+    getMedicamentos,
+    createMedicamento,
+    updateMedicamento,
+    deleteMedicamento,
+    getCategorias,
+    createCategoria,
+    searchMedicamentos,
+    addLote,
+    getLotesByMedicamento,
+    updateLote,
+    deleteLote,
+} from '../services/inventoryService';
+import { calculateMargin, formatCurrency } from '../utils/currencyUtils';
 
 const { Option } = Select;
+const { TabPane } = Tabs;
 
 const Inventario = () => {
+    // Estado para tabs
+    const [activeTab, setActiveTab] = useState('medicamentos');
+
+    // Estados para Medicamentos
     const [loading, setLoading] = useState(false);
     const [medicamentos, setMedicamentos] = useState([]);
     const [filteredMedicamentos, setFilteredMedicamentos] = useState([]);
     const [categorias, setCategorias] = useState([]);
-
-    // Cargar filtros desde localStorage
-    const [searchText, setSearchText] = useState(() => {
-        return localStorage.getItem('inventario_searchText') || '';
-    });
-    const [selectedCategoria, setSelectedCategoria] = useState(() => {
-        return localStorage.getItem('inventario_categoria') || null;
-    });
-    const [selectedEstado, setSelectedEstado] = useState(() => {
-        return localStorage.getItem('inventario_estado') || null;
-    });
-
+    const [searchText, setSearchText] = useState('');
+    const [selectedCategoria, setSelectedCategoria] = useState(null);
+    const [selectedEstado, setSelectedEstado] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingMedicamento, setEditingMedicamento] = useState(null);
     const [form] = Form.useForm();
 
-    // Guardar filtros en localStorage cuando cambien
-    useEffect(() => {
-        localStorage.setItem('inventario_searchText', searchText);
-    }, [searchText]);
+    // Estados para Lotes
+    const [selectedMedicamento, setSelectedMedicamento] = useState(null);
+    const [suggestions, setSuggestions] = useState([]);
+    const [lotes, setLotes] = useState([]);
+    const [editingLote, setEditingLote] = useState(null);
+    const [loteForm] = Form.useForm();
 
-    useEffect(() => {
-        if (selectedCategoria) {
-            localStorage.setItem('inventario_categoria', selectedCategoria);
-        } else {
-            localStorage.removeItem('inventario_categoria');
-        }
-    }, [selectedCategoria]);
-
-    useEffect(() => {
-        if (selectedEstado) {
-            localStorage.setItem('inventario_estado', selectedEstado);
-        } else {
-            localStorage.removeItem('inventario_estado');
-        }
-    }, [selectedEstado]);
+    // Estados para crear nueva categoría
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -69,17 +83,21 @@ const Inventario = () => {
         filterMedicamentos();
     }, [searchText, selectedCategoria, selectedEstado, medicamentos]);
 
+    useEffect(() => {
+        if (selectedMedicamento) {
+            loadLotes(selectedMedicamento.id);
+        } else {
+            setLotes([]);
+        }
+    }, [selectedMedicamento]);
+
     const loadData = async () => {
         try {
             setLoading(true);
-
-            // Cargar medicamentos
             const medicamentosResult = await getMedicamentos();
             if (medicamentosResult.success) {
                 setMedicamentos(medicamentosResult.data);
             }
-
-            // Cargar categorías
             const categoriasResult = await getCategorias();
             if (categoriasResult.success) {
                 setCategorias(categoriasResult.data);
@@ -91,36 +109,42 @@ const Inventario = () => {
         }
     };
 
+    const loadLotes = async (medicamentoId) => {
+        try {
+            const result = await getLotesByMedicamento(medicamentoId);
+            if (result.success) {
+                setLotes(result.data);
+            }
+        } catch (error) {
+            console.error('Error al cargar lotes:', error);
+        }
+    };
+
     const filterMedicamentos = () => {
         let filtered = [...medicamentos];
-
-        // Filtro de búsqueda
         if (searchText) {
             filtered = filtered.filter(
                 (m) =>
                     m.nombre?.toLowerCase().includes(searchText.toLowerCase()) ||
-                    m.principio_activo?.toLowerCase().includes(searchText.toLowerCase()) ||
-                    m.codigo_barras?.includes(searchText)
+                    m.principio_activo?.toLowerCase().includes(searchText.toLowerCase())
             );
         }
-
-        // Filtro de categoría
         if (selectedCategoria) {
             filtered = filtered.filter((m) => m.categoria === selectedCategoria);
         }
-
-        // Filtro de estado de vencimiento
         if (selectedEstado) {
             filtered = filtered.filter((m) => m.estado_vencimiento === selectedEstado);
         }
-
         setFilteredMedicamentos(filtered);
     };
 
-    const handleCreateOrUpdate = async (values) => {
+    // ============================================
+    // FUNCIONES PARA MEDICAMENTOS
+    // ============================================
+
+    const handleCreateOrUpdateMedicamento = async (values) => {
         try {
             if (editingMedicamento) {
-                // Actualizar
                 const result = await updateMedicamento(editingMedicamento.id, values);
                 if (result.success) {
                     message.success('Medicamento actualizado exitosamente');
@@ -132,7 +156,6 @@ const Inventario = () => {
                     message.error(result.error);
                 }
             } else {
-                // Crear
                 const result = await createMedicamento(values);
                 if (result.success) {
                     message.success('Medicamento creado exitosamente');
@@ -148,12 +171,11 @@ const Inventario = () => {
         }
     };
 
-    const handleEdit = (record) => {
+    const handleEditMedicamento = (record) => {
         setEditingMedicamento(record);
         form.setFieldsValue({
             nombre: record.nombre,
             descripcion: record.descripcion,
-            codigo_barras: record.codigo_barras,
             principio_activo: record.principio_activo,
             laboratorio: record.laboratorio,
             categoria_id: record.categoria_id,
@@ -162,7 +184,7 @@ const Inventario = () => {
         setModalVisible(true);
     };
 
-    const handleDelete = async (id) => {
+    const handleDeleteMedicamento = async (id) => {
         try {
             const result = await deleteMedicamento(id);
             if (result.success) {
@@ -176,19 +198,146 @@ const Inventario = () => {
         }
     };
 
-    const clearFilters = () => {
-        setSearchText('');
-        setSelectedCategoria(null);
-        setSelectedEstado(null);
+    const handleViewLotes = (record) => {
+        setSelectedMedicamento(record);
+        setActiveTab('lotes');
     };
 
-    const columns = [
-        {
-            title: 'Código',
-            dataIndex: 'codigo_barras',
-            key: 'codigo_barras',
-            width: 120,
-        },
+    const handleCreateCategoria = async () => {
+        if (!newCategoryName.trim()) {
+            message.warning('Por favor ingrese un nombre para la categoría');
+            return;
+        }
+
+        try {
+            const result = await createCategoria(newCategoryName.trim());
+            if (result.success) {
+                message.success(`Categoría "${newCategoryName}" creada exitosamente`);
+                setNewCategoryName('');
+                setIsAddingCategory(false);
+                // Recargar categorías
+                const categoriasResult = await getCategorias();
+                if (categoriasResult.success) {
+                    setCategorias(categoriasResult.data);
+                    // Seleccionar la nueva categoría automáticamente
+                    form.setFieldsValue({ categoria_id: result.data.id });
+                }
+            } else {
+                message.error(result.error);
+            }
+        } catch (error) {
+            message.error('Error al crear categoría');
+        }
+    };
+
+    // ============================================
+    // FUNCIONES PARA LOTES
+    // ============================================
+
+    const handleSearchMedicamento = async (query) => {
+        if (query.length >= 2) {
+            const result = await searchMedicamentos(query);
+            if (result.success) {
+                setSuggestions(result.data);
+            }
+        }
+    };
+
+    const handleSelectMedicamento = (scannedData) => {
+        if (scannedData.item) {
+            setSelectedMedicamento(scannedData.item);
+            message.success(`Producto seleccionado: ${scannedData.item.nombre}`);
+        }
+    };
+
+    const handleSubmitLote = async (values) => {
+        if (!selectedMedicamento) {
+            message.error('Por favor seleccione un producto');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const fechaVencimiento = values.fecha_vencimiento.endOf('month').format('YYYY-MM-DD');
+            const loteData = {
+                medicamento_id: selectedMedicamento.id,
+                codigo_lote: values.codigo_lote,
+                fecha_vencimiento: fechaVencimiento,
+                stock_actual: values.cantidad,
+                costo_compra: values.costo_compra || null,
+                precio_venta: values.precio_venta || null,
+            };
+
+            if (editingLote) {
+                const result = await updateLote(editingLote.id, loteData);
+                if (result.success) {
+                    message.success('Lote actualizado exitosamente');
+                    loteForm.resetFields();
+                    setEditingLote(null);
+                    loadLotes(selectedMedicamento.id);
+                } else {
+                    message.error(result.error);
+                }
+            } else {
+                const result = await addLote(loteData);
+                if (result.success) {
+                    message.success('Lote registrado exitosamente');
+                    loteForm.resetFields();
+                    loadLotes(selectedMedicamento.id);
+                    loadData(); // Actualizar lista de medicamentos
+                } else {
+                    message.error(result.error);
+                }
+            }
+        } catch (error) {
+            message.error('Error al registrar lote');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEditLote = (lote) => {
+        setEditingLote(lote);
+        loteForm.setFieldsValue({
+            codigo_lote: lote.codigo_lote,
+            fecha_vencimiento: dayjs(lote.fecha_vencimiento),
+            cantidad: lote.stock_actual,
+            costo_compra: lote.costo_compra,
+            precio_venta: lote.precio_venta,
+        });
+    };
+
+    const handleDeleteLote = async (id) => {
+        try {
+            const result = await deleteLote(id);
+            if (result.success) {
+                message.success('Lote eliminado exitosamente');
+                loadLotes(selectedMedicamento.id);
+                loadData();
+            } else {
+                message.error(result.error);
+            }
+        } catch (error) {
+            message.error('Error al eliminar lote');
+        }
+    };
+
+    const calculateMarginPercent = () => {
+        const costo = loteForm.getFieldValue('costo_compra');
+        const precio = loteForm.getFieldValue('precio_venta');
+        if (costo && precio && costo > 0) {
+            return calculateMargin(costo, precio);
+        }
+        return null;
+    };
+
+    const margen = calculateMarginPercent();
+
+    // ============================================
+    // COLUMNAS DE TABLAS
+    // ============================================
+
+    const medicamentosColumns = [
         {
             title: 'Medicamento',
             dataIndex: 'nombre',
@@ -235,19 +384,87 @@ const Inventario = () => {
             title: 'Acciones',
             key: 'actions',
             align: 'center',
-            width: 120,
+            width: 150,
+            render: (_, record) => (
+                <Space>
+                    <Button
+                        type="default"
+                        size="small"
+                        icon={<UnorderedListOutlined />}
+                        onClick={() => handleViewLotes(record)}
+                        title="Ver Lotes"
+                    />
+                    <Button
+                        type="primary"
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => handleEditMedicamento(record)}
+                    />
+                    <Popconfirm
+                        title="¿Eliminar medicamento?"
+                        description="Esta acción no se puede deshacer"
+                        onConfirm={() => handleDeleteMedicamento(record.id)}
+                        okText="Sí, eliminar"
+                        cancelText="Cancelar"
+                        okButtonProps={{ danger: true }}
+                    >
+                        <Button
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                        />
+                    </Popconfirm>
+                </Space>
+            ),
+        },
+    ];
+
+    const lotesColumns = [
+        {
+            title: 'Código Lote',
+            dataIndex: 'codigo_lote',
+            key: 'codigo_lote',
+        },
+        {
+            title: 'Vencimiento',
+            dataIndex: 'fecha_vencimiento',
+            key: 'fecha_vencimiento',
+            render: (fecha) => <ExpirationBadge fecha={fecha} />,
+        },
+        {
+            title: 'Stock',
+            dataIndex: 'stock_actual',
+            key: 'stock_actual',
+            align: 'center',
+        },
+        {
+            title: 'Costo',
+            dataIndex: 'costo_compra',
+            key: 'costo_compra',
+            render: (costo) => formatCurrency(costo || 0),
+        },
+        {
+            title: 'Precio Venta',
+            dataIndex: 'precio_venta',
+            key: 'precio_venta',
+            render: (precio) => formatCurrency(precio || 0),
+        },
+        {
+            title: 'Acciones',
+            key: 'actions',
+            align: 'center',
             render: (_, record) => (
                 <Space>
                     <Button
                         type="primary"
                         size="small"
                         icon={<EditOutlined />}
-                        onClick={() => handleEdit(record)}
+                        onClick={() => handleEditLote(record)}
                     />
                     <Popconfirm
-                        title="¿Eliminar medicamento?"
+                        title="¿Eliminar lote?"
                         description="Esta acción no se puede deshacer"
-                        onConfirm={() => handleDelete(record.id)}
+                        onConfirm={() => handleDeleteLote(record.id)}
                         okText="Sí, eliminar"
                         cancelText="Cancelar"
                         okButtonProps={{ danger: true }}
@@ -265,70 +482,256 @@ const Inventario = () => {
 
     return (
         <div>
-            {/* Barra de búsqueda y filtros */}
-            <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }} size="middle">
-                <Input
-                    size="large"
-                    placeholder="Buscar por nombre, principio activo, código de barras..."
-                    prefix={<SearchOutlined />}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    allowClear
-                />
-                <Space>
-                    <Select
-                        placeholder="Categoría"
-                        style={{ width: 200 }}
-                        value={selectedCategoria}
-                        onChange={setSelectedCategoria}
-                        allowClear
-                    >
-                        {categorias.map((cat) => (
-                            <Option key={cat.id} value={cat.nombre}>
-                                {cat.nombre}
-                            </Option>
-                        ))}
-                    </Select>
-                    <Select
-                        placeholder="Estado Vencimiento"
-                        style={{ width: 200 }}
-                        value={selectedEstado}
-                        onChange={setSelectedEstado}
-                        allowClear
-                    >
-                        <Option value="CRITICO">🔴 Crítico (&lt; 30 días)</Option>
-                        <Option value="ADVERTENCIA">🟡 Advertencia (&lt; 90 días)</Option>
-                        <Option value="NORMAL">🟢 Normal (&gt; 90 días)</Option>
-                    </Select>
-                    <Button onClick={clearFilters}>Limpiar Filtros</Button>
-                </Space>
-            </Space>
+            <Tabs activeKey={activeTab} onChange={setActiveTab} size="large">
+                {/* PESTAÑA 1: MEDICAMENTOS */}
+                <TabPane tab="📦 Medicamentos" key="medicamentos">
+                    <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }} size="middle">
+                        <Input
+                            size="large"
+                            placeholder="Buscar por nombre, principio activo..."
+                            prefix={<SearchOutlined />}
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            allowClear
+                        />
+                        <Space>
+                            <Select
+                                placeholder="Categoría"
+                                style={{ width: 200 }}
+                                value={selectedCategoria}
+                                onChange={setSelectedCategoria}
+                                allowClear
+                            >
+                                {categorias.map((cat) => (
+                                    <Option key={cat.id} value={cat.nombre}>
+                                        {cat.nombre}
+                                    </Option>
+                                ))}
+                            </Select>
+                            <Select
+                                placeholder="Estado Vencimiento"
+                                style={{ width: 200 }}
+                                value={selectedEstado}
+                                onChange={setSelectedEstado}
+                                allowClear
+                            >
+                                <Option value="CRITICO">🔴 Crítico (&lt; 30 días)</Option>
+                                <Option value="ADVERTENCIA">🟡 Advertencia (&lt; 90 días)</Option>
+                                <Option value="NORMAL">🟢 Normal (&gt; 90 días)</Option>
+                            </Select>
+                            <Button onClick={() => {
+                                setSearchText('');
+                                setSelectedCategoria(null);
+                                setSelectedEstado(null);
+                            }}>Limpiar Filtros</Button>
+                        </Space>
+                    </Space>
 
-            {/* Tabla de medicamentos */}
-            <Table
-                dataSource={filteredMedicamentos}
-                columns={columns}
-                rowKey="id"
-                loading={loading}
-                pagination={{
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (total) => `Total: ${total} medicamentos`,
-                }}
-            />
+                    <Table
+                        dataSource={filteredMedicamentos}
+                        columns={medicamentosColumns}
+                        rowKey="id"
+                        loading={loading}
+                        pagination={{
+                            pageSize: 10,
+                            showSizeChanger: true,
+                            showTotal: (total) => `Total: ${total} medicamentos`,
+                        }}
+                    />
 
-            {/* Botón flotante para agregar */}
-            <FloatButton
-                icon={<PlusOutlined />}
-                type="primary"
-                style={{ right: 24, bottom: 24 }}
-                onClick={() => {
-                    setEditingMedicamento(null);
-                    form.resetFields();
-                    setModalVisible(true);
-                }}
-                tooltip="Nuevo Medicamento"
-            />
+                    <FloatButton
+                        icon={<PlusOutlined />}
+                        type="primary"
+                        style={{ right: 24, bottom: 24 }}
+                        onClick={() => {
+                            setEditingMedicamento(null);
+                            form.resetFields();
+                            setModalVisible(true);
+                        }}
+                        tooltip="Nuevo Medicamento"
+                    />
+                </TabPane>
+
+                {/* PESTAÑA 2: GESTIÓN DE LOTES */}
+                <TabPane tab="📋 Gestión de Lotes" key="lotes">
+                    <Card title="Seleccionar Medicamento" style={{ marginBottom: 16 }}>
+                        <BarcodeScanner
+                            onScan={handleSelectMedicamento}
+                            onSearch={handleSearchMedicamento}
+                            suggestions={suggestions}
+                            placeholder="Buscar medicamento por nombre..."
+                        />
+                    </Card>
+
+                    {selectedMedicamento && (
+                        <>
+                            <Card
+                                title={editingLote ? "Editar Lote" : "Agregar Nuevo Lote"}
+                                style={{
+                                    background: editingLote ? '#fff7e6' : '#e6f7ff',
+                                    borderColor: editingLote ? '#faad14' : '#1890ff',
+                                    marginBottom: 16,
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        marginBottom: 24,
+                                        padding: 16,
+                                        background: '#fff',
+                                        borderRadius: 8,
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            width: 80,
+                                            height: 80,
+                                            background: '#f0f0f0',
+                                            borderRadius: 8,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: 40,
+                                            marginRight: 16,
+                                        }}
+                                    >
+                                        💊
+                                    </div>
+                                    <div>
+                                        <h3 style={{ margin: 0 }}>{selectedMedicamento.nombre}</h3>
+                                        <p style={{ margin: 0, color: '#8c8c8c' }}>
+                                            {selectedMedicamento.descripcion}
+                                        </p>
+                                        <p style={{ margin: 0, color: '#8c8c8c', fontSize: 12 }}>
+                                            Laboratorio: {selectedMedicamento.laboratorio}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <Form form={loteForm} layout="vertical" onFinish={handleSubmitLote}>
+                                    <Form.Item
+                                        label="Código de Lote"
+                                        name="codigo_lote"
+                                        rules={[{ required: true, message: 'Ingrese el código de lote' }]}
+                                    >
+                                        <Input placeholder="L2025-001" size="large" />
+                                    </Form.Item>
+
+                                    <Form.Item
+                                        label="Fecha de Vencimiento (Mes/Año)"
+                                        name="fecha_vencimiento"
+                                        rules={[{ required: true, message: 'Seleccione mes y año de vencimiento' }]}
+                                        tooltip="Se establecerá automáticamente el último día del mes"
+                                    >
+                                        <DatePicker
+                                            style={{ width: '100%' }}
+                                            size="large"
+                                            picker="month"
+                                            format="MM/YYYY"
+                                            placeholder="Seleccione mes y año"
+                                            disabledDate={(current) => current && current < dayjs().startOf('month')}
+                                        />
+                                    </Form.Item>
+
+                                    <Form.Item
+                                        label="Cantidad"
+                                        name="cantidad"
+                                        rules={[{ required: true, message: 'Ingrese la cantidad' }]}
+                                        initialValue={1}
+                                    >
+                                        <InputNumber
+                                            style={{ width: '100%' }}
+                                            size="large"
+                                            min={1}
+                                            max={9999}
+                                        />
+                                    </Form.Item>
+
+                                    <Space style={{ width: '100%' }} size="middle">
+                                        <Form.Item label="Costo de Compra (Bs)" name="costo_compra" style={{ flex: 1 }}>
+                                            <InputNumber
+                                                style={{ width: '100%' }}
+                                                size="large"
+                                                prefix="Bs"
+                                                min={0}
+                                                precision={2}
+                                                placeholder="5.50"
+                                            />
+                                        </Form.Item>
+
+                                        <Form.Item label="Precio de Venta (Bs)" name="precio_venta" style={{ flex: 1 }}>
+                                            <InputNumber
+                                                style={{ width: '100%' }}
+                                                size="large"
+                                                prefix="Bs"
+                                                min={0}
+                                                precision={2}
+                                                placeholder="8.00"
+                                            />
+                                        </Form.Item>
+                                    </Space>
+
+                                    {margen !== null && (
+                                        <Alert
+                                            message={`💡 Margen de ganancia: ${margen.toFixed(1)}%`}
+                                            type={margen > 30 ? 'success' : margen > 10 ? 'warning' : 'error'}
+                                            showIcon
+                                            style={{ marginBottom: 16 }}
+                                        />
+                                    )}
+
+                                    <Form.Item>
+                                        <Space>
+                                            <Button
+                                                onClick={() => {
+                                                    loteForm.resetFields();
+                                                    setEditingLote(null);
+                                                }}
+                                            >
+                                                Cancelar
+                                            </Button>
+                                            <Button
+                                                type="primary"
+                                                htmlType="submit"
+                                                icon={<CheckOutlined />}
+                                                size="large"
+                                                loading={loading}
+                                                style={{
+                                                    background: editingLote ? '#faad14' : '#52c41a',
+                                                    borderColor: editingLote ? '#faad14' : '#52c41a'
+                                                }}
+                                            >
+                                                {editingLote ? 'Actualizar Lote' : 'Registrar Lote'}
+                                            </Button>
+                                        </Space>
+                                    </Form.Item>
+                                </Form>
+                            </Card>
+
+                            {lotes.length > 0 && (
+                                <Card title="Lotes Existentes">
+                                    <Table
+                                        dataSource={lotes}
+                                        columns={lotesColumns}
+                                        rowKey="id"
+                                        pagination={false}
+                                        size="small"
+                                    />
+                                </Card>
+                            )}
+                        </>
+                    )}
+
+                    {!selectedMedicamento && (
+                        <Card>
+                            <div style={{ textAlign: 'center', padding: '40px 0', color: '#8c8c8c' }}>
+                                <p>Busque un medicamento para gestionar sus lotes</p>
+                            </div>
+                        </Card>
+                    )}
+                </TabPane>
+            </Tabs>
 
             {/* Modal para crear/editar medicamento */}
             <Modal
@@ -345,7 +748,7 @@ const Inventario = () => {
                 <Form
                     form={form}
                     layout="vertical"
-                    onFinish={handleCreateOrUpdate}
+                    onFinish={handleCreateOrUpdateMedicamento}
                 >
                     <Form.Item
                         label="Nombre"
@@ -357,14 +760,6 @@ const Inventario = () => {
 
                     <Form.Item label="Descripción" name="descripcion">
                         <Input.TextArea placeholder="Analgésico y antipirético" rows={2} />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Código de Barras"
-                        name="codigo_barras"
-                        rules={[{ required: true, message: 'Por favor ingrese el código de barras' }]}
-                    >
-                        <Input placeholder="7501234567890" />
                     </Form.Item>
 
                     <Form.Item label="Principio Activo" name="principio_activo">
@@ -382,7 +777,30 @@ const Inventario = () => {
                             rules={[{ required: true, message: 'Seleccione una categoría' }]}
                             style={{ flex: 1 }}
                         >
-                            <Select placeholder="Seleccione">
+                            <Select
+                                placeholder="Seleccione o agregue nueva"
+                                dropdownRender={(menu) => (
+                                    <>
+                                        {menu}
+                                        <Divider style={{ margin: '8px 0' }} />
+                                        <Space style={{ padding: '0 8px 4px' }}>
+                                            <Input
+                                                placeholder="Nueva categoría"
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                onPressEnter={handleCreateCategoria}
+                                            />
+                                            <Button
+                                                type="text"
+                                                icon={<PlusOutlined />}
+                                                onClick={handleCreateCategoria}
+                                            >
+                                                Agregar
+                                            </Button>
+                                        </Space>
+                                    </>
+                                )}
+                            >
                                 {categorias.map((cat) => (
                                     <Option key={cat.id} value={cat.id}>
                                         {cat.nombre}

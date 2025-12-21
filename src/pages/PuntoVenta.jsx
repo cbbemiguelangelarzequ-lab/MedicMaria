@@ -22,7 +22,7 @@ import {
 } from '@ant-design/icons';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ExpirationBadge from '../components/ExpirationBadge';
-import { getMedicamentoByBarcode, searchMedicamentos, venderCarrito, getLotesByMedicamento } from '../services/inventoryService';
+import { searchMedicamentos, venderCarrito, getLotesByMedicamento } from '../services/inventoryService';
 import { getExpirationStatus } from '../utils/expirationUtils';
 import { formatCurrency } from '../utils/currencyUtils';
 
@@ -59,14 +59,6 @@ const PuntoVenta = () => {
 
             if (scannedData.item) {
                 medicamento = scannedData.item;
-            } else if (scannedData.codigo_barras) {
-                const result = await getMedicamentoByBarcode(scannedData.codigo_barras);
-                if (result.success) {
-                    medicamento = result.data;
-                } else {
-                    message.error('Producto no encontrado');
-                    return;
-                }
             }
 
             if (medicamento) {

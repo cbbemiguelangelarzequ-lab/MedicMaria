@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS medicamentos (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     nombre TEXT NOT NULL,
     descripcion TEXT,
-    codigo_barras TEXT UNIQUE, -- Para escaneo con lector o cámara
     principio_activo TEXT,
     laboratorio TEXT,
     categoria_id BIGINT REFERENCES categorias(id) ON DELETE SET NULL,
@@ -63,8 +62,7 @@ CREATE TABLE IF NOT EXISTS movimientos (
 -- ÍNDICES PARA OPTIMIZACIÓN
 -- ============================================
 
--- Búsqueda rápida por código de barras (uso frecuente en POS)
-CREATE INDEX IF NOT EXISTS idx_medicamentos_codigo_barras ON medicamentos(codigo_barras);
+
 
 -- Búsqueda por nombre (autocompletado)
 CREATE INDEX IF NOT EXISTS idx_medicamentos_nombre ON medicamentos(nombre);
@@ -227,13 +225,14 @@ CREATE OR REPLACE VIEW vista_stock_total AS
 SELECT 
     m.id,
     m.nombre,
-    m.codigo_barras,
     m.principio_activo,
     m.laboratorio,
     c.nombre as categoria,
+    m.categoria_id,
     m.stock_minimo,
     COALESCE(SUM(l.stock_actual), 0) as total_disponible,
     MIN(l.fecha_vencimiento) as proximo_vencimiento,
+    MIN(l.precio_venta) as precio_venta,
     COUNT(l.id) FILTER (WHERE l.activo = TRUE) as cantidad_lotes_activos,
     -- Semáforo de stock
     CASE 
@@ -251,7 +250,7 @@ FROM medicamentos m
 LEFT JOIN lotes l ON m.id = l.medicamento_id AND l.activo = TRUE
 LEFT JOIN categorias c ON m.categoria_id = c.id
 WHERE m.activo = TRUE
-GROUP BY m.id, m.nombre, m.codigo_barras, m.principio_activo, m.laboratorio, c.nombre, m.stock_minimo;
+GROUP BY m.id, m.nombre, m.principio_activo, m.laboratorio, c.nombre, m.categoria_id, m.stock_minimo;
 
 -- Vista: Productos con stock bajo
 CREATE OR REPLACE VIEW vista_stock_bajo AS

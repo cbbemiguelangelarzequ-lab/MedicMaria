@@ -18,7 +18,7 @@ import { CheckOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ExpirationBadge from '../components/ExpirationBadge';
-import { getMedicamentoByBarcode, searchMedicamentos, addLote, getLotesByMedicamento, updateLote, deleteLote } from '../services/inventoryService';
+import { searchMedicamentos, addLote, getLotesByMedicamento, updateLote, deleteLote } from '../services/inventoryService';
 import { calculateMargin, formatCurrency } from '../utils/currencyUtils';
 
 const EntradaMercancia = () => {
@@ -68,14 +68,6 @@ const EntradaMercancia = () => {
 
             if (scannedData.item) {
                 medicamento = scannedData.item;
-            } else if (scannedData.codigo_barras) {
-                const result = await getMedicamentoByBarcode(scannedData.codigo_barras);
-                if (result.success) {
-                    medicamento = result.data;
-                } else {
-                    message.error('Producto no encontrado');
-                    return;
-                }
             }
 
             if (medicamento) {

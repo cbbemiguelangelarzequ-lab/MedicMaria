@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Button, Dropdown, Space } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     DashboardOutlined,
     MedicineBoxOutlined,
-    InboxOutlined,
     ShoppingCartOutlined,
+    LogoutOutlined,
+    UserOutlined,
 } from '@ant-design/icons';
+import { logout, getUser } from '../services/authService';
 
 const { Header, Sider, Content } = Layout;
 
@@ -18,6 +20,7 @@ const MainLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const user = getUser();
 
     const menuItems = [
         {
@@ -31,11 +34,6 @@ const MainLayout = () => {
             label: 'Inventario',
         },
         {
-            key: '/entrada',
-            icon: <InboxOutlined />,
-            label: 'Entrada de Mercancía',
-        },
-        {
             key: '/pos',
             icon: <ShoppingCartOutlined />,
             label: 'Punto de Venta',
@@ -45,6 +43,20 @@ const MainLayout = () => {
     const handleMenuClick = ({ key }) => {
         navigate(key);
     };
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    const userMenuItems = [
+        {
+            key: 'logout',
+            icon: <LogoutOutlined />,
+            label: 'Cerrar Sesión',
+            onClick: handleLogout,
+        },
+    ];
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
@@ -95,14 +107,21 @@ const MainLayout = () => {
                     <h2 style={{ margin: 0, color: '#262626' }}>
                         {menuItems.find((item) => item.key === location.pathname)?.label || 'Medic Maria Arz'}
                     </h2>
-                    <div style={{ color: '#8c8c8c' }}>
-                        {new Date().toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                        })}
-                    </div>
+                    <Space size="large">
+                        <div style={{ color: '#8c8c8c' }}>
+                            {new Date().toLocaleDateString('es-ES', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                            })}
+                        </div>
+                        <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+                            <Button type="text" icon={<UserOutlined />}>
+                                {user?.username || 'Usuario'}
+                            </Button>
+                        </Dropdown>
+                    </Space>
                 </Header>
                 <Content
                     style={{
