@@ -26,6 +26,7 @@ import {
     CheckOutlined,
     UnorderedListOutlined,
 } from '@ant-design/icons';
+import { useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ExpirationBadge from '../components/ExpirationBadge';
@@ -49,6 +50,7 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 
 const Inventario = () => {
+    const location = useLocation();
     // Estado para tabs
     const [activeTab, setActiveTab] = useState('medicamentos');
 
@@ -90,6 +92,18 @@ const Inventario = () => {
             setLotes([]);
         }
     }, [selectedMedicamento]);
+
+    // Efecto para manejar medicamento seleccionado desde Dashboard
+    useEffect(() => {
+        if (location.state?.selectedMedicamento) {
+            const medicamento = location.state.selectedMedicamento;
+            setSelectedMedicamento(medicamento);
+            setActiveTab('lotes');
+            message.info(`Producto seleccionado: ${medicamento.nombre}`);
+            // Limpiar el state para evitar que se vuelva a seleccionar
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
 
     const loadData = async () => {
         try {
@@ -637,7 +651,10 @@ const Inventario = () => {
                                     <Form.Item
                                         label="Cantidad"
                                         name="cantidad"
-                                        rules={[{ required: true, message: 'Ingrese la cantidad' }]}
+                                        rules={[
+                                            { required: true, message: 'Ingrese la cantidad' },
+                                            { type: 'number', min: 1, message: 'La cantidad debe ser mayor que 0' }
+                                        ]}
                                         initialValue={1}
                                     >
                                         <InputNumber
@@ -649,7 +666,14 @@ const Inventario = () => {
                                     </Form.Item>
 
                                     <Space style={{ width: '100%' }} size="middle">
-                                        <Form.Item label="Costo de Compra (Bs)" name="costo_compra" style={{ flex: 1 }}>
+                                        <Form.Item
+                                            label="Costo de Compra (Bs)"
+                                            name="costo_compra"
+                                            style={{ flex: 1 }}
+                                            rules={[
+                                                { type: 'number', min: 0, message: 'El costo no puede ser negativo' }
+                                            ]}
+                                        >
                                             <InputNumber
                                                 style={{ width: '100%' }}
                                                 size="large"
@@ -657,10 +681,29 @@ const Inventario = () => {
                                                 min={0}
                                                 precision={2}
                                                 placeholder="5.50"
+                                                onChange={() => loteForm.validateFields(['precio_venta'])}
                                             />
                                         </Form.Item>
 
-                                        <Form.Item label="Precio de Venta (Bs)" name="precio_venta" style={{ flex: 1 }}>
+                                        <Form.Item
+                                            label="Precio de Venta (Bs)"
+                                            name="precio_venta"
+                                            style={{ flex: 1 }}
+                                            rules={[
+                                                { type: 'number', min: 0, message: 'El precio no puede ser negativo' },
+                                                {
+                                                    validator: async (_, value) => {
+                                                        const costo = loteForm.getFieldValue('costo_compra');
+                                                        if (value && costo && value < costo) {
+                                                            return Promise.reject(
+                                                                new Error('⚠️ El precio de venta es menor que el costo. Tendrás pérdidas en este lote.')
+                                                            );
+                                                        }
+                                                        return Promise.resolve();
+                                                    }
+                                                }
+                                            ]}
+                                        >
                                             <InputNumber
                                                 style={{ width: '100%' }}
                                                 size="large"
@@ -674,8 +717,21 @@ const Inventario = () => {
 
                                     {margen !== null && (
                                         <Alert
-                                            message={`💡 Margen de ganancia: ${margen.toFixed(1)}%`}
-                                            type={margen > 30 ? 'success' : margen > 10 ? 'warning' : 'error'}
+                                            message={
+                                                margen < 0
+                                                    ? `⚠️ PÉRDIDA: ${Math.abs(margen).toFixed(1)}% - Estás vendiendo por debajo del costo`
+                                                    : `💡 Margen de ganancia: ${margen.toFixed(1)}%`
+                                            }
+                                            description={
+                                                margen < 0
+                                                    ? 'El precio de venta es menor que el costo de compra. Perderás dinero en cada venta.'
+                                                    : margen < 10
+                                                        ? 'Margen bajo. Considera aumentar el precio de venta.'
+                                                        : margen < 30
+                                                            ? 'Margen aceptable.'
+                                                            : 'Excelente margen de ganancia.'
+                                            }
+                                            type={margen < 0 ? 'error' : margen > 30 ? 'success' : margen > 10 ? 'warning' : 'error'}
                                             showIcon
                                             style={{ marginBottom: 16 }}
                                         />
@@ -814,9 +870,13 @@ const Inventario = () => {
                         label="Stock Mínimo"
                         name="stock_minimo"
                         initialValue={10}
-                        rules={[{ required: true, message: 'Ingrese el stock mínimo' }]}
+                        rules={[
+                            { required: true, message: 'Ingrese el stock mínimo' },
+                            { type: 'number', min: 1, message: 'El stock mínimo debe ser mayor que 0' }
+                        ]}
+                        tooltip="Cantidad mínima antes de mostrar alerta de stock bajo"
                     >
-                        <Input type="number" min={1} />
+                        <InputNumber min={1} style={{ width: '100%' }} />
                     </Form.Item>
 
                     <Form.Item>

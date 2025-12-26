@@ -387,16 +387,23 @@ export const getDashboardKPIs = async () => {
         const { data: ventas, error: ventasError } = await supabase
             .from('movimientos')
             .select('cantidad, precio_unitario, lotes(costo_compra)')
-            .eq('tipo_movimiento', 'SALIDA');
+            .eq('tipo_movimiento', 'VENTA');
 
         if (ventasError) throw ventasError;
 
-        const gananciasObtenidas = ventas.reduce((sum, venta) => {
+        let totalIngresos = 0;
+        let totalCostos = 0;
+        let gananciasObtenidas = 0;
+
+        ventas?.forEach(venta => {
             const precioVenta = venta.precio_unitario || 0;
             const costoCompra = venta.lotes?.costo_compra || 0;
-            const ganancia = (precioVenta - costoCompra) * venta.cantidad;
-            return sum + ganancia;
-        }, 0);
+            const cantidadVendida = Math.abs(venta.cantidad);
+
+            totalIngresos += precioVenta * cantidadVendida;
+            totalCostos += costoCompra * cantidadVendida;
+            gananciasObtenidas += (precioVenta - costoCompra) * cantidadVendida;
+        });
 
         // Total de productos
         const { count: totalProductos, error: productosError } = await supabase
@@ -419,6 +426,8 @@ export const getDashboardKPIs = async () => {
             data: {
                 valorTotal,
                 gananciasObtenidas,
+                totalIngresos,
+                totalCostos,
                 totalProductos,
                 stockBajo: stockBajo?.length || 0,
                 porVencer: porVencer?.length || 0,

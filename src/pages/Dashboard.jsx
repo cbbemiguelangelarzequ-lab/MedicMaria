@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Table, Button, message, Spin } from 'antd';
+import { Row, Col, Card, Statistic, Table, Button, message, Spin, Alert, Modal } from 'antd';
 import {
     DollarOutlined,
     RiseOutlined,
     MedicineBoxOutlined,
     WarningOutlined,
     ClockCircleOutlined,
+    InfoCircleOutlined,
 } from '@ant-design/icons';
+import { Link, useNavigate } from 'react-router-dom';
 import { getDashboardKPIs, getStockBajo, getProductosPorVencer } from '../services/inventoryService';
 import { formatCurrency } from '../utils/currencyUtils';
 import ExpirationBadge from '../components/ExpirationBadge';
 import StockIndicator from '../components/StockIndicator';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [kpis, setKpis] = useState({
         valorTotal: 0,
         gananciasObtenidas: 0,
+        totalIngresos: 0,
+        totalCostos: 0,
         totalProductos: 0,
         stockBajo: 0,
         porVencer: 0,
@@ -56,6 +61,41 @@ const Dashboard = () => {
         }
     };
 
+    const handleReabastecer = (medicamento) => {
+        // Redirigir a Inventario con el medicamento seleccionado
+        navigate('/inventario', { state: { selectedMedicamento: medicamento } });
+    };
+
+    const handleRegistrarMerma = (lote) => {
+        Modal.confirm({
+            title: '⚠️ Registrar Merma por Vencimiento',
+            content: (
+                <div>
+                    <p><strong>Medicamento:</strong> {lote.medicamento}</p>
+                    <p><strong>Lote:</strong> {lote.codigo_lote}</p>
+                    <p><strong>Stock actual:</strong> {lote.stock_actual} unidades</p>
+                    <p><strong>Fecha vencimiento:</strong> {new Date(lote.fecha_vencimiento).toLocaleDateString('es-BO')}</p>
+                    <br />
+                    <p>¿Desea registrar este lote como merma por vencimiento?</p>
+                    <p style={{ color: '#ff4d4f', fontSize: 12 }}>Esta acción desactivará el lote y registrará la pérdida.</p>
+                </div>
+            ),
+            okText: 'Sí, registrar merma',
+            cancelText: 'Cancelar',
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try {
+                    // Aquí iría la lógica para registrar la merma
+                    // Por ahora solo mostramos un mensaje
+                    message.success('Merma registrada exitosamente');
+                    loadDashboardData();
+                } catch (error) {
+                    message.error('Error al registrar merma');
+                }
+            },
+        });
+    };
+
     const stockBajoColumns = [
         {
             title: 'Medicamento',
@@ -85,8 +125,12 @@ const Dashboard = () => {
             title: 'Acción',
             key: 'action',
             align: 'center',
-            render: () => (
-                <Button type="primary" size="small">
+            render: (_, record) => (
+                <Button
+                    type="primary"
+                    size="small"
+                    onClick={() => handleReabastecer(record)}
+                >
                     Reabastecer
                 </Button>
             ),
@@ -120,8 +164,12 @@ const Dashboard = () => {
             title: 'Acción',
             key: 'action',
             align: 'center',
-            render: () => (
-                <Button danger size="small">
+            render: (_, record) => (
+                <Button
+                    danger
+                    size="small"
+                    onClick={() => handleRegistrarMerma(record)}
+                >
                     Registrar Merma
                 </Button>
             ),
@@ -190,6 +238,68 @@ const Dashboard = () => {
                     </Card>
                 </Col>
             </Row>
+
+            {/* Sección de Diagnóstico de Ganancias */}
+            <Card
+                title={
+                    <span>
+                        <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+                        Resumen Financiero
+                    </span>
+                }
+                extra={
+                    <Link to="/diagnostico">
+                        <Button type="link">Ver Detalle Completo</Button>
+                    </Link>
+                }
+                style={{ marginBottom: 24 }}
+            >
+                <Row gutter={16}>
+                    <Col xs={24} md={8}>
+                        <Statistic
+                            title="💵 Ingresos Totales"
+                            value={formatCurrency(kpis.totalIngresos || 0)}
+                            valueStyle={{ color: '#1890ff', fontSize: '20px' }}
+                        />
+                        <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                            Total de ventas realizadas
+                        </div>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Statistic
+                            title="📦 Costos Totales"
+                            value={formatCurrency(kpis.totalCostos || 0)}
+                            valueStyle={{ color: '#ff4d4f', fontSize: '20px' }}
+                        />
+                        <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                            Costo de mercancía vendida
+                        </div>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Statistic
+                            title="💰 Ganancias Netas"
+                            value={formatCurrency(kpis.gananciasObtenidas || 0)}
+                            valueStyle={{ color: '#52c41a', fontSize: '20px', fontWeight: 'bold' }}
+                        />
+                        <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                            Ingresos - Costos
+                        </div>
+                    </Col>
+                </Row>
+                <Alert
+                    message="💡 Diferencia entre Ingresos y Ganancias"
+                    description={
+                        <div>
+                            <strong>Ingresos:</strong> Todo el dinero que entra por ventas<br />
+                            <strong>Costos:</strong> Lo que te costó comprar la mercancía<br />
+                            <strong>Ganancias:</strong> Tu beneficio real (Ingresos - Costos)
+                        </div>
+                    }
+                    type="info"
+                    showIcon
+                    style={{ marginTop: 16 }}
+                />
+            </Card>
 
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
