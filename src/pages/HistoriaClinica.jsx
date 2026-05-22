@@ -93,7 +93,7 @@ const HistoriaClinica = () => {
             const newItem = {
                 key: Date.now().toString(),
                 medicamento_id: values.medicamento_id || null,
-                medicamento_externo: values.medicamento_externo || (medSeleccionado ? medSeleccionado.nombre : ''),
+                medicamento_externo: values.medicamento_externo || (medSeleccionado ? `${medSeleccionado.nombre} ${medSeleccionado.principio_activo ? `(${medSeleccionado.principio_activo})` : ''}` : 'Medicamento no especificado'),
                 cantidad: values.cantidad,
                 dosis: values.dosis,
                 frecuencia: values.frecuencia,
@@ -405,8 +405,12 @@ const HistoriaClinica = () => {
                                         filterOption={false}
                                         onSearch={handleSearchMedicamento}
                                         notFoundContent={buscandoMedicamento ? 'Buscando...' : 'No encontrado'}
-                                        onChange={(value, option) => {
-                                            formReceta.setFieldsValue({ medicamento_externo: option.children });
+                                        onChange={(value) => {
+                                            const med = medicamentosBusqueda.find(m => m.id === value);
+                                            if (med) {
+                                                const nombreCompleto = `${med.nombre} ${med.principio_activo ? `(${med.principio_activo})` : ''}`;
+                                                formReceta.setFieldsValue({ medicamento_externo: nombreCompleto });
+                                            }
                                         }}
                                         allowClear
                                     >
