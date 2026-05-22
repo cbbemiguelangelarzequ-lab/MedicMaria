@@ -7,6 +7,7 @@ import {
     ShoppingCartOutlined,
     LogoutOutlined,
     UserOutlined,
+    TeamOutlined,
 } from '@ant-design/icons';
 import { logout, getUser } from '../services/authService';
 
@@ -32,6 +33,11 @@ const MainLayout = () => {
             key: '/inventario',
             icon: <MedicineBoxOutlined />,
             label: 'Inventario',
+        },
+        {
+            key: '/pacientes',
+            icon: <TeamOutlined />,
+            label: 'Clínica / Pacientes',
         },
         {
             key: '/pos',
@@ -105,7 +111,9 @@ const MainLayout = () => {
                     }}
                 >
                     <h2 style={{ margin: 0, color: '#262626' }}>
-                        {menuItems.find((item) => item.key === location.pathname)?.label || 'Medic Maria Arz'}
+                        {location.pathname.startsWith('/pacientes/') 
+                            ? 'Historia Clínica' 
+                            : menuItems.find((item) => item.key === location.pathname)?.label || 'Medic Maria Arz'}
                     </h2>
                     <Space size="large">
                         <div style={{ color: '#8c8c8c' }}>

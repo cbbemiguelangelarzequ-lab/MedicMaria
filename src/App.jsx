@@ -9,6 +9,8 @@ import Dashboard from './pages/Dashboard';
 import Inventario from './pages/Inventario';
 import PuntoVenta from './pages/PuntoVenta';
 import DiagnosticoGanancias from './pages/DiagnosticoGanancias';
+import Pacientes from './pages/Pacientes';
+import HistoriaClinica from './pages/HistoriaClinica';
 import './App.css';
 
 function App() {
@@ -38,6 +40,8 @@ function App() {
             <Route path="inventario" element={<Inventario />} />
             <Route path="pos" element={<PuntoVenta />} />
             <Route path="diagnostico" element={<DiagnosticoGanancias />} />
+            <Route path="pacientes" element={<Pacientes />} />
+            <Route path="pacientes/:id" element={<HistoriaClinica />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
