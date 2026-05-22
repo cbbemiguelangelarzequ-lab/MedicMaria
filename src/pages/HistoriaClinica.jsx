@@ -89,15 +89,20 @@ const HistoriaClinica = () => {
     const handleAddMedicamento = () => {
         formReceta.validateFields().then(values => {
             const medSeleccionado = medicamentosBusqueda.find(m => m.id === values.medicamento_id);
+            const precioUnitario = medSeleccionado?.precio_venta || 0;
+            const cantidad = values.cantidad || 1;
+            const subtotal = precioUnitario * cantidad;
             
             const newItem = {
                 key: Date.now().toString(),
                 medicamento_id: values.medicamento_id || null,
                 medicamento_externo: values.medicamento_externo || (medSeleccionado ? `${medSeleccionado.nombre} ${medSeleccionado.principio_activo ? `(${medSeleccionado.principio_activo})` : ''}` : 'Medicamento no especificado'),
-                cantidad: values.cantidad,
+                cantidad: cantidad,
                 dosis: values.dosis,
                 frecuencia: values.frecuencia,
                 duracion: values.duracion,
+                precio_unitario: precioUnitario,
+                subtotal: subtotal,
                 es_del_inventario: !!medSeleccionado
             };
 
@@ -168,7 +173,19 @@ const HistoriaClinica = () => {
         { title: 'Dosis', dataIndex: 'dosis', key: 'dosis' },
         { title: 'Frecuencia', dataIndex: 'frecuencia', key: 'frecuencia' },
         { title: 'Duración', dataIndex: 'duracion', key: 'duracion' },
-        { title: 'Cant', dataIndex: 'cantidad', key: 'cantidad' },
+        { title: 'Cant.', dataIndex: 'cantidad', key: 'cantidad' },
+        { 
+            title: 'P. Unitario', 
+            dataIndex: 'precio_unitario', 
+            key: 'precio_unitario',
+            render: (val) => val > 0 ? `Bs. ${val.toFixed(2)}` : '-'
+        },
+        { 
+            title: 'Subtotal', 
+            dataIndex: 'subtotal', 
+            key: 'subtotal',
+            render: (val) => val > 0 ? <Text strong>Bs. {val.toFixed(2)}</Text> : '-'
+        },
         {
             title: 'Acción',
             key: 'action',
@@ -498,6 +515,23 @@ const HistoriaClinica = () => {
                         pagination={false} 
                         size="small"
                         bordered
+                        summary={(pageData) => {
+                            let totalCosto = 0;
+                            pageData.forEach(({ subtotal }) => {
+                                totalCosto += subtotal || 0;
+                            });
+                            if (totalCosto === 0) return null;
+                            return (
+                                <Table.Summary.Row>
+                                    <Table.Summary.Cell index={0} colSpan={6} align="right">
+                                        <Text strong>Costo Total Estimado:</Text>
+                                    </Table.Summary.Cell>
+                                    <Table.Summary.Cell index={1} colSpan={2}>
+                                        <Text strong style={{ color: '#52c41a' }}>Bs. {totalCosto.toFixed(2)}</Text>
+                                    </Table.Summary.Cell>
+                                </Table.Summary.Row>
+                            );
+                        }}
                     />
                 )}
             </Modal>
