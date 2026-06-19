@@ -1,5 +1,11 @@
 import React from 'react';
-import { Badge, Tag } from 'antd';
+import { Tag } from 'antd';
+import { 
+    ClockCircleOutlined, 
+    WarningOutlined, 
+    ExclamationCircleOutlined, 
+    CloseCircleOutlined 
+} from '@ant-design/icons';
 import { getExpirationStatus, getExpirationMessage } from '../utils/expirationUtils';
 
 /**
@@ -8,25 +14,49 @@ import { getExpirationStatus, getExpirationMessage } from '../utils/expirationUt
  * 🟡 Amarillo: < 90 días
  * 🟢 Verde: > 90 días
  */
-const ExpirationBadge = ({ fecha, showDays = true, showEmoji = true }) => {
-    const { status, color, label, badge, dias } = getExpirationStatus(fecha);
+const ExpirationBadge = ({ fecha, showDays = true, showIcon = true }) => {
+    const { status, color, label, badge } = getExpirationStatus(fecha);
     const message = getExpirationMessage(fecha);
 
     if (!fecha) {
-        return <Tag color="default">Sin fecha</Tag>;
+        return (
+            <Tag 
+                color="default" 
+                style={{ 
+                    padding: '4px 10px', 
+                    borderRadius: '6px', 
+                    fontWeight: 500,
+                    fontSize: '13px' 
+                }}
+            >
+                Sin fecha
+            </Tag>
+        );
     }
 
-    const emoji = {
-        expired: '⚫',
-        danger: '🔴',
-        warning: '🟡',
-        success: '🟢',
-        unknown: '⚪',
+    const icon = {
+        expired: <CloseCircleOutlined />,
+        danger: <WarningOutlined />,
+        warning: <ExclamationCircleOutlined />,
+        success: <ClockCircleOutlined />,
+        unknown: <ClockCircleOutlined />,
     }[status];
 
     return (
-        <Tag color={badge} style={{ borderColor: color }}>
-            {showEmoji && <span style={{ marginRight: 4 }}>{emoji}</span>}
+        <Tag 
+            color={badge} 
+            icon={showIcon ? icon : null}
+            style={{ 
+                borderColor: color,
+                padding: '4px 10px', 
+                borderRadius: '6px', 
+                fontWeight: 500,
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+            }}
+        >
             {showDays ? message : label}
         </Tag>
     );

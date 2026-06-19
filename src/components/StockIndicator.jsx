@@ -15,21 +15,18 @@ const StockIndicator = ({ actual, minimo, showIcon = true }) => {
                 color: 'error',
                 icon: <WarningOutlined />,
                 label: 'Bajo',
-                emoji: '🔴',
             };
         } else if (actual < minimo * 1.5) {
             return {
                 color: 'warning',
                 icon: <ExclamationCircleOutlined />,
                 label: 'Medio',
-                emoji: '🟡',
             };
         } else {
             return {
                 color: 'success',
                 icon: <CheckCircleOutlined />,
                 label: 'Alto',
-                emoji: '🟢',
             };
         }
     };
@@ -37,8 +34,20 @@ const StockIndicator = ({ actual, minimo, showIcon = true }) => {
     const status = getStatus();
 
     return (
-        <Tag color={status.color} icon={showIcon ? status.icon : null}>
-            {status.emoji} {actual} / {minimo}
+        <Tag 
+            color={status.color} 
+            icon={showIcon ? status.icon : null}
+            style={{ 
+                padding: '4px 10px', 
+                borderRadius: '6px', 
+                fontWeight: 500,
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+            }}
+        >
+            {actual} / {minimo}
         </Tag>
     );
 };
