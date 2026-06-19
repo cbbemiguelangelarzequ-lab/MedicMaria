@@ -14,11 +14,13 @@ import {
     Divider,
 } from 'antd';
 import {
+    ShoppingCartOutlined,
+    CheckOutlined,
+    BulbOutlined,
+    WarningOutlined,
     DeleteOutlined,
     PlusOutlined,
     MinusOutlined,
-    ShoppingCartOutlined,
-    CheckOutlined,
 } from '@ant-design/icons';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ExpirationBadge from '../components/ExpirationBadge';
@@ -90,7 +92,10 @@ const PuntoVenta = () => {
 
                     const { status, dias } = getExpirationStatus(primerLote.fecha_vencimiento);
                     if (status === 'danger') {
-                        message.warning(`⚠️ Este producto vence en ${dias} días`);
+                        message.warning({
+                            content: `Este producto vence en ${dias} días`,
+                            icon: <WarningOutlined style={{ color: '#faad14' }} />
+                        });
                     }
                 } else {
                     message.error('No hay stock disponible de este producto');
@@ -150,7 +155,7 @@ const PuntoVenta = () => {
 
         if (productosProximosVencer.length > 0) {
             Modal.confirm({
-                title: '⚠️ Productos próximos a vencer',
+                title: <span><WarningOutlined style={{ color: '#faad14', marginRight: 8 }} /> Productos próximos a vencer</span>,
                 content: (
                     <div>
                         <p>Los siguientes productos están próximos a vencer:</p>
@@ -189,8 +194,8 @@ const PuntoVenta = () => {
                                 <strong>Productos vendidos:</strong> {carrito.length}
                             </p>
                             <Divider />
-                            <p style={{ fontSize: 12, color: '#8c8c8c' }}>
-                                💡 Lotes aplicados con lógica FEFO
+                            <p style={{ fontSize: 12, color: '#8c8c8c', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <BulbOutlined /> Lotes aplicados con lógica FEFO
                             </p>
                         </div>
                     ),
@@ -336,7 +341,7 @@ const PuntoVenta = () => {
                 >
                     {productosProximosVencer.length > 0 && (
                         <Alert
-                            message={`⚠️ ${productosProximosVencer.length} producto(s) próximo(s) a vencer`}
+                            message={<span><WarningOutlined /> {productosProximosVencer.length} producto(s) próximo(s) a vencer</span>}
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}

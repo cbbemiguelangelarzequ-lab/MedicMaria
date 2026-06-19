@@ -7,6 +7,9 @@ import {
     WarningOutlined,
     ClockCircleOutlined,
     InfoCircleOutlined,
+    BankOutlined,
+    InboxOutlined,
+    BulbOutlined,
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { getDashboardKPIs, getStockBajo, getProductosPorVencer } from '../services/inventoryService';
@@ -257,9 +260,9 @@ const Dashboard = () => {
                 <Row gutter={16}>
                     <Col xs={24} md={8}>
                         <Statistic
-                            title="💵 Ingresos Totales"
+                            title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><BankOutlined /> Ingresos Totales</span>}
                             value={formatCurrency(kpis.totalIngresos || 0)}
-                            valueStyle={{ color: '#1890ff', fontSize: '20px' }}
+                            valueStyle={{ color: '#007BFF', fontSize: '24px', fontWeight: 600 }}
                         />
                         <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
                             Total de ventas realizadas
@@ -267,9 +270,9 @@ const Dashboard = () => {
                     </Col>
                     <Col xs={24} md={8}>
                         <Statistic
-                            title="📦 Costos Totales"
+                            title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><InboxOutlined /> Costos Totales</span>}
                             value={formatCurrency(kpis.totalCostos || 0)}
-                            valueStyle={{ color: '#ff4d4f', fontSize: '20px' }}
+                            valueStyle={{ color: '#ff4d4f', fontSize: '24px', fontWeight: 600 }}
                         />
                         <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
                             Costo de mercancía vendida
@@ -277,9 +280,9 @@ const Dashboard = () => {
                     </Col>
                     <Col xs={24} md={8}>
                         <Statistic
-                            title="💰 Ganancias Netas"
+                            title={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><RiseOutlined /> Ganancias Netas</span>}
                             value={formatCurrency(kpis.gananciasObtenidas || 0)}
-                            valueStyle={{ color: '#52c41a', fontSize: '20px', fontWeight: 'bold' }}
+                            valueStyle={{ color: '#52c41a', fontSize: '24px', fontWeight: 'bold' }}
                         />
                         <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
                             Ingresos - Costos
@@ -287,17 +290,20 @@ const Dashboard = () => {
                     </Col>
                 </Row>
                 <Alert
-                    message="💡 Diferencia entre Ingresos y Ganancias"
+                    message={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                            <BulbOutlined /> Diferencia entre Ingresos y Ganancias
+                        </span>
+                    }
                     description={
-                        <div>
-                            <strong>Ingresos:</strong> Todo el dinero que entra por ventas<br />
-                            <strong>Costos:</strong> Lo que te costó comprar la mercancía<br />
-                            <strong>Ganancias:</strong> Tu beneficio real (Ingresos - Costos)
+                        <div style={{ marginTop: '8px' }}>
+                            <p style={{ margin: 0 }}><strong>Ingresos:</strong> Todo el dinero que entra por ventas</p>
+                            <p style={{ margin: 0 }}><strong>Costos:</strong> Lo que te costó comprar la mercancía</p>
+                            <p style={{ margin: 0 }}><strong>Ganancias:</strong> Tu beneficio real (Ingresos - Costos)</p>
                         </div>
                     }
                     type="info"
-                    showIcon
-                    style={{ marginTop: 16 }}
+                    style={{ marginTop: 24, borderRadius: '8px', border: '1px solid #bae0ff' }}
                 />
             </Card>
 

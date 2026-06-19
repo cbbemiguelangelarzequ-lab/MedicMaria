@@ -19,10 +19,23 @@ function App() {
       locale={esES}
       theme={{
         token: {
-          colorPrimary: '#1890ff',
+          colorPrimary: '#007BFF', // Clinical modern blue
+          colorInfo: '#007BFF',
           borderRadius: 8,
           fontSize: 14,
+          fontFamily: '"Inter", "Roboto", "Helvetica Neue", Arial, sans-serif',
+          colorBgContainer: '#ffffff',
         },
+        components: {
+          Layout: {
+            bodyBg: '#f0f2f5',
+            headerBg: '#ffffff',
+          },
+          Card: {
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            borderRadius: 12,
+          }
+        }
       }}
     >
       <Router>

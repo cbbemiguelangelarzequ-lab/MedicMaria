@@ -8,6 +8,7 @@ import {
     LogoutOutlined,
     UserOutlined,
     TeamOutlined,
+    HeartOutlined,
 } from '@ant-design/icons';
 import { logout, getUser } from '../services/authService';
 
@@ -89,7 +90,8 @@ const MainLayout = () => {
                         textAlign: 'center',
                     }}
                 >
-                    {collapsed ? '💊' : '💊 Medic Maria Arz'}
+                    <HeartOutlined style={{ fontSize: collapsed ? '24px' : '20px', marginRight: collapsed ? 0 : '10px' }} />
+                    {!collapsed && <span style={{ letterSpacing: '1px' }}>CLÍNICA MARIA</span>}
                 </div>
                 <Menu
                     mode="inline"
@@ -110,10 +112,10 @@ const MainLayout = () => {
                         justifyContent: 'space-between',
                     }}
                 >
-                    <h2 style={{ margin: 0, color: '#262626' }}>
+                    <h2 style={{ margin: 0, color: '#1890ff', fontWeight: 600, fontSize: '20px' }}>
                         {location.pathname.startsWith('/pacientes/') 
-                            ? 'Historia Clínica' 
-                            : menuItems.find((item) => item.key === location.pathname)?.label || 'Medic Maria Arz'}
+                            ? 'HISTORIA CLÍNICA' 
+                            : (menuItems.find((item) => item.key === location.pathname)?.label?.toUpperCase() || 'SISTEMA CLÍNICO')}
                     </h2>
                     <Space size="large">
                         <div style={{ color: '#8c8c8c' }}>
@@ -135,9 +137,10 @@ const MainLayout = () => {
                     style={{
                         margin: '24px',
                         padding: '24px',
-                        background: '#fff',
-                        borderRadius: '8px',
+                        background: '#f5f7fa',
+                        borderRadius: '12px',
                         minHeight: 'calc(100vh - 112px)',
+                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
                     }}
                 >
                     <Outlet />

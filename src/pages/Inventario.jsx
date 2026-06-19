@@ -21,10 +21,12 @@ import {
 import {
     PlusOutlined,
     SearchOutlined,
-    EditOutlined,
     DeleteOutlined,
     CheckOutlined,
     UnorderedListOutlined,
+    AppstoreOutlined,
+    BarcodeOutlined,
+    ExperimentOutlined,
 } from '@ant-design/icons';
 import { useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -498,7 +500,7 @@ const Inventario = () => {
         <div>
             <Tabs activeKey={activeTab} onChange={setActiveTab} size="large">
                 {/* PESTAÑA 1: MEDICAMENTOS */}
-                <TabPane tab="📦 Medicamentos" key="medicamentos">
+                <TabPane tab={<span><AppstoreOutlined /> Medicamentos</span>} key="medicamentos">
                     <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }} size="middle">
                         <Input
                             size="large"
@@ -529,9 +531,9 @@ const Inventario = () => {
                                 onChange={setSelectedEstado}
                                 allowClear
                             >
-                                <Option value="CRITICO">🔴 Crítico (&lt; 30 días)</Option>
-                                <Option value="ADVERTENCIA">🟡 Advertencia (&lt; 90 días)</Option>
-                                <Option value="NORMAL">🟢 Normal (&gt; 90 días)</Option>
+                                <Option value="CRITICO">Estado: Crítico (&lt; 30 días)</Option>
+                                <Option value="ADVERTENCIA">Estado: Advertencia (&lt; 90 días)</Option>
+                                <Option value="NORMAL">Estado: Normal (&gt; 90 días)</Option>
                             </Select>
                             <Button onClick={() => {
                                 setSearchText('');
@@ -567,7 +569,7 @@ const Inventario = () => {
                 </TabPane>
 
                 {/* PESTAÑA 2: GESTIÓN DE LOTES */}
-                <TabPane tab="📋 Gestión de Lotes" key="lotes">
+                <TabPane tab={<span><BarcodeOutlined /> Gestión de Lotes</span>} key="lotes">
                     <Card title="Seleccionar Medicamento" style={{ marginBottom: 16 }}>
                         <BarcodeScanner
                             onScan={handleSelectMedicamento}
@@ -610,7 +612,7 @@ const Inventario = () => {
                                             marginRight: 16,
                                         }}
                                     >
-                                        💊
+                                        <ExperimentOutlined style={{ color: '#1890ff' }} />
                                     </div>
                                     <div>
                                         <h3 style={{ margin: 0 }}>{selectedMedicamento.nombre}</h3>

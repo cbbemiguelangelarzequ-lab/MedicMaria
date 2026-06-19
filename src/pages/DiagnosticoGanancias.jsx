@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Statistic, Row, Col, Button, message } from 'antd';
+import { Card, Table, Statistic, Row, Col, Button, message, Alert } from 'antd';
+import { SearchOutlined, WarningOutlined } from '@ant-design/icons';
 import { supabase } from '../config/supabaseClient';
 import { formatCurrency } from '../utils/currencyUtils';
 
@@ -169,7 +170,7 @@ const DiagnosticoGanancias = () => {
     return (
         <div style={{ padding: 24 }}>
             <Card
-                title="🔍 Diagnóstico de Ganancias"
+                title={<span><SearchOutlined /> Diagnóstico de Ganancias</span>}
                 extra={<Button onClick={cargarDatos} loading={loading}>Actualizar</Button>}
                 style={{ marginBottom: 16 }}
             >
@@ -204,10 +205,12 @@ const DiagnosticoGanancias = () => {
                 </Row>
 
                 {resumen.ventasSinCosto > 0 && (
-                    <div style={{ marginTop: 16, padding: 12, background: '#fff7e6', borderRadius: 4 }}>
-                        ⚠️ <strong>{resumen.ventasSinCosto} ventas</strong> no tienen costo registrado (aparecen en rojo).
-                        Esto hace que la ganancia sea igual al precio de venta completo.
-                    </div>
+                    <Alert 
+                        message={<span><WarningOutlined /> <strong>{resumen.ventasSinCosto} ventas</strong> no tienen costo registrado (aparecen en rojo). Esto hace que la ganancia sea igual al precio de venta completo.</span>}
+                        type="warning"
+                        showIcon={false}
+                        style={{ marginTop: 16, background: '#fff7e6', border: '1px solid #ffd591' }}
+                    />
                 )}
             </Card>
 

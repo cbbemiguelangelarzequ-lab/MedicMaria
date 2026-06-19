@@ -16,11 +16,12 @@ import {
     Popconfirm,
 } from 'antd';
 import {
-    PlusOutlined,
-    SearchOutlined,
     EditOutlined,
     FolderOpenOutlined,
     DeleteOutlined,
+    TeamOutlined,
+    PlusOutlined,
+    SearchOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -168,8 +169,10 @@ const Pacientes = () => {
 
     return (
         <Card>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                <Title level={3} style={{ margin: 0 }}>Gestión de Pacientes</Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
+                <Title level={3} style={{ margin: 0, color: '#007BFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <TeamOutlined /> Directorio de Pacientes
+                </Title>
                 <Space>
                     <Input.Search
                         placeholder="Buscar por nombre..."
