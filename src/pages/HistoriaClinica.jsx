@@ -17,13 +17,18 @@ import {
     Select,
     Table,
     InputNumber,
-    AutoComplete
+    AutoComplete,
+    Dropdown,
+    Menu
 } from 'antd';
 import { 
     ArrowLeftOutlined, 
     PlusOutlined, 
     MedicineBoxOutlined,
-    UserOutlined
+    UserOutlined,
+    ThunderboltOutlined,
+    SaveOutlined,
+    DeleteOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -50,6 +55,7 @@ const HistoriaClinica = () => {
     const [recetaItems, setRecetaItems] = useState([]);
     const [medicamentosBusqueda, setMedicamentosBusqueda] = useState([]);
     const [buscandoMedicamento, setBuscandoMedicamento] = useState(false);
+    const [plantillas, setPlantillas] = useState([]);
 
     const loadData = async () => {
         setLoading(true);
@@ -74,7 +80,58 @@ const HistoriaClinica = () => {
 
     useEffect(() => {
         loadData();
+        const savedPlantillas = localStorage.getItem('plantillas_receta_clinica');
+        if (savedPlantillas) {
+            try {
+                setPlantillas(JSON.parse(savedPlantillas));
+            } catch (e) {
+                console.error("Error loading plantillas", e);
+            }
+        }
     }, [id]);
+
+    const handleGuardarPlantilla = () => {
+        if (recetaItems.length === 0) {
+            message.warning('Añade al menos un medicamento para crear una plantilla');
+            return;
+        }
+        
+        const nombre = window.prompt('Ingresa un nombre para este Kit/Plantilla (ej. Inyección Dolor Fuerte):');
+        if (nombre && nombre.trim() !== '') {
+            const nuevaPlantilla = {
+                id: Date.now(),
+                nombre: nombre.trim(),
+                honorarios: formConsulta.getFieldValue('honorarios') || 0,
+                items: recetaItems
+            };
+            const nuevasPlantillas = [...plantillas, nuevaPlantilla];
+            setPlantillas(nuevasPlantillas);
+            localStorage.setItem('plantillas_receta_clinica', JSON.stringify(nuevasPlantillas));
+            message.success('Plantilla guardada exitosamente');
+        }
+    };
+
+    const handleCargarPlantilla = (plantilla) => {
+        if (plantilla.honorarios) {
+            formConsulta.setFieldsValue({ honorarios: plantilla.honorarios });
+        }
+        
+        const nuevosItems = plantilla.items.map(item => ({
+            ...item,
+            key: Date.now() + Math.random() // Ensure unique keys
+        }));
+        
+        setRecetaItems([...recetaItems, ...nuevosItems]);
+        message.success(`Kit "${plantilla.nombre}" cargado en la receta`);
+    };
+
+    const handleEliminarPlantilla = (idPlantilla, e) => {
+        e.stopPropagation();
+        const nuevas = plantillas.filter(p => p.id !== idPlantilla);
+        setPlantillas(nuevas);
+        localStorage.setItem('plantillas_receta_clinica', JSON.stringify(nuevas));
+        message.success('Plantilla eliminada');
+    };
 
     const handleSearchMedicamento = async (value) => {
         if (!value || value.length < 2) return;
@@ -501,8 +558,47 @@ const HistoriaClinica = () => {
                     </Form.Item>
                 </Form>
 
-                <Divider orientation="left" plain><MedicineBoxOutlined /> Generar Receta</Divider>
-                <Card size="small" type="inner" style={{ marginBottom: 16, background: '#f0f5ff', borderColor: '#d6e4ff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                    <Divider orientation="left" plain style={{ flexGrow: 1, margin: '0 16px 0 0' }}>
+                        <MedicineBoxOutlined /> Generar Receta
+                    </Divider>
+                    <Dropdown 
+                        menu={{
+                            items: [
+                                {
+                                    key: 'save',
+                                    icon: <SaveOutlined />,
+                                    label: 'Guardar Receta Actual como Plantilla...',
+                                    onClick: handleGuardarPlantilla
+                                },
+                                { type: 'divider' },
+                                ...plantillas.map(p => ({
+                                    key: p.id,
+                                    label: (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '250px' }}>
+                                            <span>⚡ {p.nombre}</span>
+                                            <Button 
+                                                type="text" 
+                                                danger 
+                                                size="small" 
+                                                icon={<DeleteOutlined />} 
+                                                onClick={(e) => handleEliminarPlantilla(p.id, e)}
+                                            />
+                                        </div>
+                                    ),
+                                    onClick: () => handleCargarPlantilla(p)
+                                }))
+                            ]
+                        }}
+                        trigger={['click']}
+                    >
+                        <Button type="primary" style={{ backgroundColor: '#fa8c16', borderColor: '#fa8c16' }} icon={<ThunderboltOutlined />}>
+                            Kits Rápidos
+                        </Button>
+                    </Dropdown>
+                </div>
+                
+                <Card size="small" type="inner" style={{ marginBottom: 16, marginTop: 16, background: '#f0f5ff', borderColor: '#d6e4ff' }}>
                     <Form form={formReceta} layout="vertical">
                         <Row gutter={8}>
                             <Col span={10}>
