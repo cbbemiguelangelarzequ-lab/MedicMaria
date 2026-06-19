@@ -395,7 +395,8 @@ const HistoriaClinica = () => {
                                                         pagination={false}
                                                         size="small"
                                                         rowKey="id"
-                                                        style={{ border: '1px solid #f0f0f0', borderRadius: '8px' }}
+                                                        scroll={{ x: 'max-content' }}
+                                                        style={{ border: '1px solid #f0f0f0', borderRadius: '8px', overflowX: 'auto' }}
                                                         columns={[
                                                             { 
                                                                 title: 'Medicamento', 
