@@ -357,6 +357,9 @@ const HistoriaClinica = () => {
                 width={800}
                 okText="Guardar Consulta"
                 cancelText="Cancelar"
+                centered
+                style={{ top: 20 }}
+                styles={{ body: { maxHeight: '75vh', overflowY: 'auto', paddingRight: '8px' } }}
             >
                 <Form form={formConsulta} layout="vertical">
                     <Divider orientation="left" plain>Signos Vitales</Divider>

@@ -200,6 +200,9 @@ const Pacientes = () => {
                 onCancel={handleCancel}
                 onOk={() => form.submit()}
                 width={700}
+                centered
+                style={{ top: 20 }}
+                styles={{ body: { maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' } }}
             >
                 <Form
                     form={form}
