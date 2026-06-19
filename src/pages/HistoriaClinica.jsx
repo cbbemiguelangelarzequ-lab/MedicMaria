@@ -28,7 +28,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getPacienteById, getConsultasByPaciente, createConsulta } from '../services/clinicService';
-import { searchMedicamentos } from '../services/inventoryService';
+import { searchMedicamentos, venderCarrito } from '../services/inventoryService';
 
 const { Title, Text } = Typography;
 const { TextArea } = AntInput;
@@ -116,6 +116,13 @@ const HistoriaClinica = () => {
         setRecetaItems(recetaItems.filter(item => item.key !== key));
     };
 
+    const closeConsultaModal = () => {
+        setIsConsultaModalVisible(false);
+        formConsulta.resetFields();
+        setRecetaItems([]);
+        loadData();
+    };
+
     const handleSubmitConsulta = async () => {
         try {
             const values = await formConsulta.validateFields();
@@ -147,10 +154,42 @@ const HistoriaClinica = () => {
             
             if (res.success) {
                 message.success('Consulta registrada exitosamente');
-                setIsConsultaModalVisible(false);
-                formConsulta.resetFields();
-                setRecetaItems([]);
-                loadData(); // Recargar historial
+                
+                const itemsInventario = recetaItems.filter(item => item.es_del_inventario);
+                
+                if (itemsInventario.length > 0) {
+                    Modal.confirm({
+                        title: '¿Registrar venta de medicamentos?',
+                        content: 'Se recetaron medicamentos del inventario. ¿Desea registrar la venta y descontar el stock en este momento?',
+                        okText: 'Sí, registrar venta',
+                        cancelText: 'No, solo guardar consulta',
+                        onOk: async () => {
+                            try {
+                                const carrito = itemsInventario.map(item => ({
+                                    medicamento_id: item.medicamento_id,
+                                    cantidad: item.cantidad,
+                                    nombre: item.medicamento_externo
+                                }));
+                                
+                                const ventaRes = await venderCarrito(carrito);
+                                if (ventaRes.success) {
+                                    message.success('Venta registrada en el Historial de Ventas y stock descontado.');
+                                } else {
+                                    message.error('Error al registrar venta: ' + ventaRes.error);
+                                }
+                            } catch (error) {
+                                message.error('Error procesando la venta automática');
+                            } finally {
+                                closeConsultaModal();
+                            }
+                        },
+                        onCancel: () => {
+                            closeConsultaModal();
+                        }
+                    });
+                } else {
+                    closeConsultaModal();
+                }
             } else {
                 message.error('Error al guardar consulta: ' + res.error);
             }
@@ -348,11 +387,7 @@ const HistoriaClinica = () => {
             <Modal
                 title="Registrar Nueva Consulta"
                 open={isConsultaModalVisible}
-                onCancel={() => {
-                    setIsConsultaModalVisible(false);
-                    formConsulta.resetFields();
-                    setRecetaItems([]);
-                }}
+                onCancel={closeConsultaModal}
                 onOk={handleSubmitConsulta}
                 width={800}
                 okText="Guardar Consulta"

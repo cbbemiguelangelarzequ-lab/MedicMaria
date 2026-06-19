@@ -5,6 +5,7 @@ import {
     DashboardOutlined,
     MedicineBoxOutlined,
     ShoppingCartOutlined,
+    FileDoneOutlined,
     LogoutOutlined,
     UserOutlined,
     TeamOutlined,
@@ -44,6 +45,11 @@ const MainLayout = () => {
             key: '/pos',
             icon: <ShoppingCartOutlined />,
             label: 'Punto de Venta',
+        },
+        {
+            key: '/historial-ventas',
+            icon: <FileDoneOutlined />,
+            label: 'Historial de Ventas',
         },
     ];
 
