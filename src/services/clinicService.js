@@ -97,7 +97,7 @@ export const searchPacientes = async (query) => {
         const { data, error } = await supabase
             .from('pacientes')
             .select('*')
-            .or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%,dni.ilike.%${query}%`)
+            .or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
             .eq('activo', true)
             .order('apellidos', { ascending: true })
             .limit(10);

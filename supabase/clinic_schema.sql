@@ -7,8 +7,6 @@ CREATE TABLE IF NOT EXISTS pacientes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     nombre TEXT NOT NULL,
     apellidos TEXT NOT NULL,
-    dni TEXT UNIQUE,
-    fecha_nacimiento DATE,
     telefono TEXT,
     email TEXT,
     direccion TEXT,
@@ -36,6 +34,7 @@ CREATE TABLE IF NOT EXISTS consultas_medicas (
     presion_arterial TEXT,
     temperatura DECIMAL(4,2),
     -- Metadatos
+    costo_total DECIMAL(10,2) DEFAULT 0.00,
     fecha_consulta TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     estado TEXT DEFAULT 'COMPLETADA', -- PENDIENTE, COMPLETADA, CANCELADA
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -78,7 +77,6 @@ CREATE TRIGGER update_consultas_updated_at
 -- ============================================
 
 CREATE INDEX IF NOT EXISTS idx_pacientes_nombre ON pacientes(nombre, apellidos);
-CREATE INDEX IF NOT EXISTS idx_pacientes_dni ON pacientes(dni);
 CREATE INDEX IF NOT EXISTS idx_consultas_paciente ON consultas_medicas(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_consultas_fecha ON consultas_medicas(fecha_consulta DESC);
 CREATE INDEX IF NOT EXISTS idx_recetas_consulta ON recetas_medicamentos(consulta_id);

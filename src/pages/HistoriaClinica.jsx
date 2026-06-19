@@ -129,7 +129,8 @@ const HistoriaClinica = () => {
                 peso: values.peso,
                 talla: values.talla,
                 presion_arterial: values.presion_arterial,
-                temperatura: values.temperatura
+                temperatura: values.temperatura,
+                costo_total: recetaItems.reduce((sum, item) => sum + (item.subtotal || 0), 0)
             };
 
             // Preparar recetas
@@ -198,7 +199,6 @@ const HistoriaClinica = () => {
     if (loading) return <Card loading={true} />;
     if (!paciente) return <Card>Paciente no encontrado</Card>;
 
-    const edad = paciente.fecha_nacimiento ? dayjs().diff(dayjs(paciente.fecha_nacimiento), 'year') : 'N/A';
 
     return (
         <div>
@@ -217,11 +217,9 @@ const HistoriaClinica = () => {
                     >
                         <div style={{ textAlign: 'center', marginBottom: 20 }}>
                             <Title level={4}>{paciente.nombres} {paciente.apellidos}</Title>
-                            <Text type="secondary">DNI: {paciente.dni || 'No registrado'}</Text>
                         </div>
                         
                         <Descriptions column={1} size="small" bordered>
-                            <Descriptions.Item label="Edad">{edad} años</Descriptions.Item>
                             <Descriptions.Item label="Sexo">{paciente.sexo || 'N/A'}</Descriptions.Item>
                             <Descriptions.Item label="Sangre">
                                 {paciente.tipo_sangre ? <Tag color="red">{paciente.tipo_sangre}</Tag> : 'N/A'}
@@ -268,6 +266,12 @@ const HistoriaClinica = () => {
                                                 <MedicineBoxOutlined /> {consulta.motivo_consulta}
                                             </Title>
                                             
+                                            {consulta.costo_total && consulta.costo_total > 0 && (
+                                                <Tag color="green" style={{ position: 'absolute', right: 10, top: 10, fontSize: '14px', padding: '4px 8px' }}>
+                                                    Bs. {parseFloat(consulta.costo_total).toFixed(2)}
+                                                </Tag>
+                                            )}
+
                                             <Divider style={{ margin: '8px 0' }} />
                                             
                                             {/* Signos Vitales */}

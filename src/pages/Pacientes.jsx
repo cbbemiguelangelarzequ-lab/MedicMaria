@@ -68,8 +68,7 @@ const Pacientes = () => {
         setEditingPaciente(paciente);
         if (paciente) {
             form.setFieldsValue({
-                ...paciente,
-                fecha_nacimiento: paciente.fecha_nacimiento ? dayjs(paciente.fecha_nacimiento) : null,
+                ...paciente
             });
         } else {
             form.resetFields();
@@ -86,7 +85,6 @@ const Pacientes = () => {
     const handleSubmit = async (values) => {
         const pacienteData = {
             ...values,
-            fecha_nacimiento: values.fecha_nacimiento ? values.fecha_nacimiento.format('YYYY-MM-DD') : null,
         };
 
         let res;
@@ -123,22 +121,9 @@ const Pacientes = () => {
             sorter: (a, b) => a.apellidos.localeCompare(b.apellidos),
         },
         {
-            title: 'DNI',
-            dataIndex: 'dni',
-            key: 'dni',
-        },
-        {
             title: 'Teléfono',
             dataIndex: 'telefono',
             key: 'telefono',
-        },
-        {
-            title: 'Edad',
-            key: 'edad',
-            render: (_, record) => {
-                if (!record.fecha_nacimiento) return 'N/A';
-                return dayjs().diff(dayjs(record.fecha_nacimiento), 'year') + ' años';
-            },
         },
         {
             title: 'Alergias',
@@ -187,7 +172,7 @@ const Pacientes = () => {
                 <Title level={3} style={{ margin: 0 }}>Gestión de Pacientes</Title>
                 <Space>
                     <Input.Search
-                        placeholder="Buscar por nombre o DNI..."
+                        placeholder="Buscar por nombre..."
                         allowClear
                         onSearch={handleSearch}
                         style={{ width: 300 }}
@@ -232,18 +217,6 @@ const Pacientes = () => {
                             rules={[{ required: true, message: 'Por favor ingrese los apellidos' }]}
                         >
                             <AntInput />
-                        </Form.Item>
-                        <Form.Item
-                            name="dni"
-                            label="DNI / Documento"
-                        >
-                            <AntInput />
-                        </Form.Item>
-                        <Form.Item
-                            name="fecha_nacimiento"
-                            label="Fecha de Nacimiento"
-                        >
-                            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
                         </Form.Item>
                         <Form.Item
                             name="telefono"
