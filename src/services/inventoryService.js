@@ -324,6 +324,30 @@ export const venderCarrito = async (items, usuarioId = null) => {
     }
 };
 
+/**
+ * Registrar venta de servicio u honorarios (No descuenta stock físico)
+ */
+export const registrarVentaServicio = async (monto, descripcion = 'Honorarios Médicos / Servicio', usuarioId = null) => {
+    try {
+        const { data, error } = await supabase
+            .from('movimientos')
+            .insert([{
+                tipo_movimiento: 'VENTA',
+                cantidad: -1,
+                precio_unitario: monto,
+                total: monto,
+                observaciones: descripcion,
+                usuario_id: usuarioId
+            }]);
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error al registrar servicio:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 // ============================================
 // ALERTAS Y REPORTES
 // ============================================
@@ -519,6 +543,7 @@ export default {
     deleteLote,
     venderProducto,
     venderCarrito,
+    registrarVentaServicio,
     getStockBajo,
     getProductosPorVencer,
     getDashboardKPIs,

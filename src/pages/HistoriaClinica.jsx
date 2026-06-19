@@ -28,7 +28,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getPacienteById, getConsultasByPaciente, createConsulta } from '../services/clinicService';
-import { searchMedicamentos, venderCarrito } from '../services/inventoryService';
+import { searchMedicamentos, venderCarrito, registrarVentaServicio } from '../services/inventoryService';
 
 const { Title, Text } = Typography;
 const { TextArea } = AntInput;
@@ -137,7 +137,7 @@ const HistoriaClinica = () => {
                 talla: values.talla,
                 presion_arterial: values.presion_arterial,
                 temperatura: values.temperatura,
-                costo_total: recetaItems.reduce((sum, item) => sum + (item.subtotal || 0), 0)
+                costo_total: recetaItems.reduce((sum, item) => sum + (item.subtotal || 0), 0) + (values.honorarios || 0)
             };
 
             // Preparar recetas
@@ -159,9 +159,15 @@ const HistoriaClinica = () => {
                 
                 if (itemsInventario.length > 0) {
                     Modal.confirm({
-                        title: '¿Registrar venta de medicamentos?',
-                        content: 'Se recetaron medicamentos del inventario. ¿Desea registrar la venta y descontar el stock en este momento?',
-                        okText: 'Sí, registrar venta',
+                        title: '¿Registrar venta de medicamentos y honorarios?',
+                        content: (
+                            <div>
+                                <p>Se recetaron medicamentos del inventario.</p>
+                                {values.honorarios > 0 && <p><strong>Honorarios por consulta:</strong> Bs. {values.honorarios.toFixed(2)}</p>}
+                                <p>¿Desea registrar la venta, descontar el stock e incluir los honorarios en el Historial de Ventas?</p>
+                            </div>
+                        ),
+                        okText: 'Sí, registrar venta y honorarios',
                         cancelText: 'No, solo guardar consulta',
                         onOk: async () => {
                             try {
@@ -172,13 +178,19 @@ const HistoriaClinica = () => {
                                 }));
                                 
                                 const ventaRes = await venderCarrito(carrito);
-                                if (ventaRes.success) {
-                                    message.success('Venta registrada en el Historial de Ventas y stock descontado.');
-                                } else {
-                                    message.error('Error al registrar venta: ' + ventaRes.error);
+                                if (!ventaRes.success) {
+                                    throw new Error(ventaRes.error);
                                 }
+                                
+                                // Registrar honorarios médicos si existen
+                                if (values.honorarios > 0) {
+                                    const honRes = await registrarVentaServicio(values.honorarios, 'Honorarios Médicos / Consulta');
+                                    if (!honRes.success) throw new Error(honRes.error);
+                                }
+                                
+                                message.success('Venta y honorarios registrados en el Historial exitosamente.');
                             } catch (error) {
-                                message.error('Error procesando la venta automática');
+                                message.error('Error procesando la venta automática: ' + error.message);
                             } finally {
                                 closeConsultaModal();
                             }
@@ -186,6 +198,29 @@ const HistoriaClinica = () => {
                         onCancel: () => {
                             closeConsultaModal();
                         }
+                    });
+                } else if (values.honorarios > 0) {
+                    // Si no hay medicamentos físicos pero SÍ hay honorarios
+                    Modal.confirm({
+                        title: '¿Registrar cobro de honorarios?',
+                        content: `Desea registrar el cobro de honorarios por Bs. ${values.honorarios.toFixed(2)} en el Historial de Ventas?`,
+                        okText: 'Sí, registrar cobro',
+                        cancelText: 'No, solo guardar consulta',
+                        onOk: async () => {
+                            try {
+                                const honRes = await registrarVentaServicio(values.honorarios, 'Honorarios Médicos / Consulta');
+                                if (honRes.success) {
+                                    message.success('Honorarios registrados en el Historial exitosamente.');
+                                } else {
+                                    throw new Error(honRes.error);
+                                }
+                            } catch (error) {
+                                message.error('Error procesando el cobro: ' + error.message);
+                            } finally {
+                                closeConsultaModal();
+                            }
+                        },
+                        onCancel: () => closeConsultaModal()
                     });
                 } else {
                     closeConsultaModal();
@@ -422,13 +457,26 @@ const HistoriaClinica = () => {
                     </Row>
 
                     <Divider orientation="left" plain>Datos de la Consulta</Divider>
-                    <Form.Item 
-                        name="motivo_consulta" 
-                        label="Motivo de la consulta"
-                        rules={[{ required: true, message: 'Ingrese el motivo' }]}
-                    >
-                        <AntInput />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={16}>
+                            <Form.Item 
+                                name="motivo_consulta" 
+                                label="Motivo de la consulta"
+                                rules={[{ required: true, message: 'Ingrese el motivo' }]}
+                            >
+                                <AntInput />
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                            <Form.Item 
+                                name="honorarios" 
+                                label="Honorarios / Servicio (Bs.)"
+                                tooltip="Costo por la consulta médica o aplicación de medicamentos (inyectables, curaciones, etc.)"
+                            >
+                                <InputNumber min={0} style={{ width: '100%' }} prefix="Bs." />
+                            </Form.Item>
+                        </Col>
+                    </Row>
                     
                     <Row gutter={16}>
                         <Col span={12}>
@@ -562,14 +610,20 @@ const HistoriaClinica = () => {
                             pageData.forEach(({ subtotal }) => {
                                 totalCosto += subtotal || 0;
                             });
-                            if (totalCosto === 0) return null;
+                            
+                            // Obtener honorarios actuales del formulario usando Watch o getFieldValue
+                            // Puesto que summary no se re-renderiza con form.getFieldValue si no es reactivo, 
+                            // requerimos usar Form.useWatch en un refactor mayor, pero podemos hacerlo simple aquí:
+                            const honorariosActuales = formConsulta.getFieldValue('honorarios') || 0;
+                            const totalGeneral = totalCosto + honorariosActuales;
+                            
                             return (
                                 <Table.Summary.Row>
                                     <Table.Summary.Cell index={0} colSpan={6} align="right">
-                                        <Text strong>Costo Total Estimado:</Text>
+                                        <Text strong>Costo Total (Meds + Honorarios):</Text>
                                     </Table.Summary.Cell>
                                     <Table.Summary.Cell index={1} colSpan={2}>
-                                        <Text strong style={{ color: '#52c41a' }}>Bs. {totalCosto.toFixed(2)}</Text>
+                                        <Text strong style={{ color: '#52c41a' }}>Bs. {totalGeneral.toFixed(2)}</Text>
                                     </Table.Summary.Cell>
                                 </Table.Summary.Row>
                             );

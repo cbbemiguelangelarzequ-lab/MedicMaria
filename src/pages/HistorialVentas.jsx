@@ -27,6 +27,7 @@ const HistorialVentas = () => {
                     cantidad,
                     precio_unitario,
                     total,
+                    observaciones,
                     lotes(costo_compra, codigo_lote),
                     medicamentos(nombre)
                 `)
@@ -60,8 +61,8 @@ const HistorialVentas = () => {
                 
                 grupos[fechaMinuto].items.push({
                     id: mov.id,
-                    medicamento: mov.medicamentos?.nombre || 'N/A',
-                    lote: mov.lotes?.codigo_lote || 'N/A',
+                    medicamento: mov.medicamentos?.nombre || mov.observaciones || 'Servicio Médico',
+                    lote: mov.lotes?.codigo_lote || '-',
                     cantidad: cantidadAbs,
                     precio: precioVenta,
                     subtotal: precioVenta * cantidadAbs
