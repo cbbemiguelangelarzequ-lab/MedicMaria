@@ -17,6 +17,40 @@ import { formatCurrency } from '../utils/currencyUtils';
 import ExpirationBadge from '../components/ExpirationBadge';
 import StockIndicator from '../components/StockIndicator';
 
+const MetricCard = ({ title, value, icon, color }) => (
+    <Card 
+        bordered={false} 
+        style={{ 
+            background: color, 
+            borderRadius: '12px', 
+            color: '#fff',
+            boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'
+        }}
+        styles={{ body: { padding: '24px' } }}
+    >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '50%',
+                width: '56px',
+                height: '56px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '28px',
+                color: '#fff',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+            }}>
+                {icon}
+            </div>
+            <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '15px', marginBottom: '4px', opacity: 0.9, fontWeight: 500 }}>{title}</div>
+                <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{value}</div>
+            </div>
+        </div>
+    </Card>
+);
+
 const Dashboard = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
@@ -189,56 +223,53 @@ const Dashboard = () => {
 
     return (
         <div>
+            <Card style={{ marginBottom: 24, borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h2 style={{ margin: 0, color: '#2A3038', fontWeight: 600 }}>👋 Hola, ¡Bienvenido de nuevo!</h2>
+                    <Button type="primary" style={{ borderRadius: '8px' }} onClick={loadDashboardData}>Actualizar Datos</Button>
+                </div>
+            </Card>
+
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card>
-                        <Statistic
-                            title="Valor Total Inventario"
-                            value={formatCurrency(kpis.valorTotal)}
-                            prefix={<DollarOutlined />}
-                            valueStyle={{ color: '#1890ff', fontSize: '24px' }}
-                        />
-                    </Card>
+                <Col xs={24} sm={12} lg={8}>
+                    <MetricCard 
+                        title="Valor Total Inventario" 
+                        value={formatCurrency(kpis.valorTotal)} 
+                        icon={<DollarOutlined />} 
+                        color="linear-gradient(45deg, #1890ff, #36a3f7)" 
+                    />
                 </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card>
-                        <Statistic
-                            title="Ganancias Obtenidas"
-                            value={formatCurrency(kpis.gananciasObtenidas)}
-                            prefix={<RiseOutlined />}
-                            valueStyle={{ color: '#52c41a', fontSize: '24px' }}
-                        />
-                    </Card>
+                <Col xs={24} sm={12} lg={8}>
+                    <MetricCard 
+                        title="Ganancias Obtenidas" 
+                        value={formatCurrency(kpis.gananciasObtenidas)} 
+                        icon={<RiseOutlined />} 
+                        color="linear-gradient(45deg, #52c41a, #73d13d)" 
+                    />
                 </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card>
-                        <Statistic
-                            title="Total Productos"
-                            value={kpis.totalProductos}
-                            prefix={<MedicineBoxOutlined />}
-                            valueStyle={{ color: '#722ed1' }}
-                        />
-                    </Card>
+                <Col xs={24} sm={12} lg={8}>
+                    <MetricCard 
+                        title="Total Productos" 
+                        value={kpis.totalProductos} 
+                        icon={<MedicineBoxOutlined />} 
+                        color="linear-gradient(45deg, #722ed1, #9254de)" 
+                    />
                 </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card>
-                        <Statistic
-                            title="Stock Bajo"
-                            value={kpis.stockBajo}
-                            prefix={<WarningOutlined />}
-                            valueStyle={{ color: '#faad14' }}
-                        />
-                    </Card>
+                <Col xs={24} sm={12} lg={12}>
+                    <MetricCard 
+                        title="Stock Bajo" 
+                        value={kpis.stockBajo} 
+                        icon={<WarningOutlined />} 
+                        color="linear-gradient(45deg, #faad14, #ffc53d)" 
+                    />
                 </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card>
-                        <Statistic
-                            title="Por Vencer (30 días)"
-                            value={kpis.porVencer}
-                            prefix={<ClockCircleOutlined />}
-                            valueStyle={{ color: '#ff4d4f' }}
-                        />
-                    </Card>
+                <Col xs={24} sm={12} lg={12}>
+                    <MetricCard 
+                        title="Por Vencer (30 días)" 
+                        value={kpis.porVencer} 
+                        icon={<ClockCircleOutlined />} 
+                        color="linear-gradient(45deg, #ff4d4f, #ff7875)" 
+                    />
                 </Col>
             </Row>
 
