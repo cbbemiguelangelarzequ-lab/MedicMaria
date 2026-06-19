@@ -22,6 +22,7 @@ import {
     PlusOutlined,
     SearchOutlined,
     DeleteOutlined,
+    EditOutlined,
     CheckOutlined,
     UnorderedListOutlined,
     AppstoreOutlined,
