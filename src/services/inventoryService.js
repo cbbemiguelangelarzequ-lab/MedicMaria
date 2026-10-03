@@ -292,15 +292,14 @@ export const venderProducto = async (medicamentoId, cantidad, usuarioId = null, 
 
         // Si hay nombre de paciente, actualizar los movimientos recién creados
         if (pacienteNombre) {
-            // Actualizamos los movimientos de esta venta con el nombre del paciente
+            const haceUnMinuto = new Date(Date.now() - 60000).toISOString();
             await supabase
                 .from('movimientos')
                 .update({ paciente_nombre: pacienteNombre })
                 .eq('medicamento_id', medicamentoId)
                 .eq('tipo_movimiento', 'VENTA')
                 .is('paciente_nombre', null)
-                .order('fecha', { ascending: false })
-                .limit(10);
+                .gte('fecha', haceUnMinuto);
         }
 
         return { success: true, data };

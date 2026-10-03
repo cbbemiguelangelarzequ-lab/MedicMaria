@@ -14,6 +14,11 @@ import {
     Divider,
     Input,
     Form,
+    Select,
+    Radio,
+    Tag,
+    Avatar,
+    Typography,
 } from 'antd';
 import {
     ShoppingCartOutlined,
@@ -24,12 +29,17 @@ import {
     PlusOutlined,
     MinusOutlined,
     UserOutlined,
+    ShopOutlined,
+    EditOutlined,
 } from '@ant-design/icons';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ExpirationBadge from '../components/ExpirationBadge';
 import { searchMedicamentos, venderCarrito, getLotesByMedicamento } from '../services/inventoryService';
+import { getPacientes } from '../services/clinicService';
 import { getExpirationStatus } from '../utils/expirationUtils';
 import { formatCurrency } from '../utils/currencyUtils';
+
+const { Text } = Typography;
 
 const CARRITO_STORAGE_KEY = 'farmacia_carrito';
 
@@ -47,6 +57,25 @@ const PuntoVenta = () => {
 
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    // Lista de pacientes registrados para autocompletar
+    const [pacientes, setPacientes] = useState([]);
+    // Estado del modal de confirmación de venta
+    const [modalVentaVisible, setModalVentaVisible] = useState(false);
+    const [tipoCliente, setTipoCliente] = useState('MOSTRADOR'); // 'MOSTRADOR' | 'REGISTRADO' | 'MANUAL'
+    const [pacienteIdSeleccionado, setPacienteIdSeleccionado] = useState(null);
+    const [pacienteNombreManual, setPacienteNombreManual] = useState('');
+
+    // Cargar pacientes registrados al montar el componente
+    useEffect(() => {
+        const cargarPacientes = async () => {
+            const res = await getPacientes();
+            if (res.success) {
+                setPacientes(res.data || []);
+            }
+        };
+        cargarPacientes();
+    }, []);
 
     // Guardar carrito en localStorage cada vez que cambie
     useEffect(() => {
@@ -145,56 +174,37 @@ const PuntoVenta = () => {
         return carrito.reduce((sum, item) => sum + item.precio_venta * item.cantidad, 0);
     };
 
-    const handleConfirmarVenta = async () => {
+    const handleConfirmarVenta = () => {
         if (carrito.length === 0) {
             message.warning('El carrito está vacío');
             return;
         }
+        setModalVentaVisible(true);
+    };
 
-        const productosProximosVencer = carrito.filter((item) => {
-            const { status } = getExpirationStatus(item.fecha_vencimiento);
-            return status === 'danger';
-        });
+    const handleEjecutarVenta = async () => {
+        let pacienteNombre = null;
 
-        // Modal para ingresar nombre del paciente (opcional)
-        let pacienteNombreInput = '';
+        if (tipoCliente === 'REGISTRADO') {
+            if (!pacienteIdSeleccionado) {
+                message.warning('Por favor seleccione un paciente de la lista o cambie a Venta Mostrador');
+                return;
+            }
+            const p = pacientes.find((item) => item.id === pacienteIdSeleccionado);
+            if (p) {
+                pacienteNombre = `${p.nombres} ${p.apellidos}`.trim();
+            }
+        } else if (tipoCliente === 'MANUAL') {
+            pacienteNombre = pacienteNombreManual.trim() || null;
+        }
 
-        const mostrarModalVenta = (onConfirm) => {
-            const modalContent = (
-                <div>
-                    {productosProximosVencer.length > 0 && (
-                        <Alert
-                            message={`${productosProximosVencer.length} producto(s) próximo(s) a vencer`}
-                            type="warning"
-                            showIcon
-                            style={{ marginBottom: 16 }}
-                        />
-                    )}
-                    <p style={{ marginBottom: 8, fontWeight: 500 }}>Nombre del Paciente (opcional):</p>
-                    <Input
-                        prefix={<UserOutlined style={{ color: '#8c8c8c' }} />}
-                        placeholder="Ej. Juan Pérez (dejar vacío si es venta libre)"
-                        onChange={(e) => { pacienteNombreInput = e.target.value; }}
-                        style={{ marginBottom: 8 }}
-                    />
-                    <p style={{ fontSize: 12, color: '#8c8c8c' }}>
-                        Si ingresa un nombre, la venta quedará registrada a su nombre en el historial.
-                    </p>
-                </div>
-            );
+        setModalVentaVisible(false);
+        await procesarVenta(pacienteNombre);
 
-            Modal.confirm({
-                title: <span><CheckOutlined style={{ color: '#52c41a', marginRight: 8 }} /> Confirmar Venta</span>,
-                content: modalContent,
-                okText: 'Confirmar Venta',
-                cancelText: 'Cancelar',
-                okButtonProps: { style: { background: '#52c41a', borderColor: '#52c41a' } },
-                width: 440,
-                onOk: () => onConfirm(pacienteNombreInput.trim() || null),
-            });
-        };
-
-        mostrarModalVenta((pacienteNombre) => procesarVenta(pacienteNombre));
+        // Resetear selección
+        setTipoCliente('MOSTRADOR');
+        setPacienteIdSeleccionado(null);
+        setPacienteNombreManual('');
     };
 
     const procesarVenta = async (pacienteNombre = null) => {
@@ -431,6 +441,167 @@ const PuntoVenta = () => {
                     </Space>
                 </Card>
             </Col>
+
+            {/* Modal de Confirmación y Selección de Paciente / Mostrador */}
+            <Modal
+                title={
+                    <Space>
+                        <CheckOutlined style={{ color: '#52c41a' }} />
+                        <span>Confirmar Venta</span>
+                    </Space>
+                }
+                open={modalVentaVisible}
+                onCancel={() => setModalVentaVisible(false)}
+                onOk={handleEjecutarVenta}
+                okText="Completar Venta"
+                cancelText="Volver al Carrito"
+                okButtonProps={{
+                    style: { background: '#52c41a', borderColor: '#52c41a' },
+                    loading: loading,
+                }}
+                width={520}
+                destroyOnClose
+            >
+                <div style={{ marginTop: 8 }}>
+                    {carrito.some(item => getExpirationStatus(item.fecha_vencimiento).status === 'danger') && (
+                        <Alert
+                            message="Atención: Uno o más productos en el carrito están próximos a vencer."
+                            type="warning"
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                        />
+                    )}
+
+                    <div style={{
+                        background: '#f6ffed',
+                        border: '1px solid #b7eb8f',
+                        borderRadius: 8,
+                        padding: '12px 16px',
+                        marginBottom: 20,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <div>
+                            <Text type="secondary" style={{ fontSize: 12 }}>Total a cobrar</Text>
+                            <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
+                                {formatCurrency(calcularTotal())}
+                            </div>
+                        </div>
+                        <Tag color="green" style={{ fontSize: 13, padding: '4px 10px' }}>
+                            {carrito.reduce((sum, item) => sum + item.cantidad, 0)} unidad(es)
+                        </Tag>
+                    </div>
+
+                    <div style={{ marginBottom: 12, fontWeight: 600 }}>¿A quién se realiza la venta?</div>
+
+                    <Radio.Group
+                        value={tipoCliente}
+                        onChange={(e) => setTipoCliente(e.target.value)}
+                        style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}
+                    >
+                        {/* Opción 1: Venta rápida mostrador */}
+                        <div style={{
+                            padding: '10px 14px',
+                            border: `1px solid ${tipoCliente === 'MOSTRADOR' ? '#52c41a' : '#d9d9d9'}`,
+                            borderRadius: 8,
+                            background: tipoCliente === 'MOSTRADOR' ? '#f6ffed' : '#fafafa',
+                            cursor: 'pointer'
+                        }} onClick={() => setTipoCliente('MOSTRADOR')}>
+                            <Radio value="MOSTRADOR">
+                                <strong style={{ fontSize: 14 }}>🏪 Venta Mostrador (Rápida / Sin registro)</strong>
+                            </Radio>
+                            <div style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 24, marginTop: 4 }}>
+                                Para clientes que solo compran medicamentos al paso. No requiere historia ni paciente.
+                            </div>
+                        </div>
+
+                        {/* Opción 2: Paciente registrado con autocompletado */}
+                        <div style={{
+                            padding: '10px 14px',
+                            border: `1px solid ${tipoCliente === 'REGISTRADO' ? '#1890ff' : '#d9d9d9'}`,
+                            borderRadius: 8,
+                            background: tipoCliente === 'REGISTRADO' ? '#e6f7ff' : '#fafafa',
+                        }}>
+                            <Radio value="REGISTRADO">
+                                <strong style={{ fontSize: 14 }}>👤 Paciente Registrado en la Clínica</strong>
+                            </Radio>
+                            <div style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 24, marginTop: 4, marginBottom: 8 }}>
+                                Selecciona un paciente existente. Evita errores ortográficos y lo vincula a su historial.
+                            </div>
+
+                            {tipoCliente === 'REGISTRADO' && (
+                                <div style={{ marginLeft: 24, marginTop: 8 }}>
+                                    <Select
+                                        showSearch
+                                        placeholder="Escribe el nombre, apellido o CI del paciente..."
+                                        style={{ width: '100%' }}
+                                        value={pacienteIdSeleccionado}
+                                        onChange={(val) => setPacienteIdSeleccionado(val)}
+                                        filterOption={(input, option) =>
+                                            (option?.searchtext || '').toLowerCase().includes(input.toLowerCase())
+                                        }
+                                        notFoundContent="No se encontraron pacientes con ese nombre o CI"
+                                    >
+                                        {pacientes.map((p) => {
+                                            const nombreCompleto = `${p.nombres} ${p.apellidos}`.trim();
+                                            return (
+                                                <Select.Option
+                                                    key={p.id}
+                                                    value={p.id}
+                                                    searchtext={`${nombreCompleto} ${p.documento_identidad || ''}`}
+                                                >
+                                                    <Space>
+                                                        <Avatar
+                                                            size="small"
+                                                            src={p.foto_url}
+                                                            icon={!p.foto_url && <UserOutlined />}
+                                                            style={{ background: '#1890ff' }}
+                                                        />
+                                                        <span>{nombreCompleto}</span>
+                                                        {p.documento_identidad && (
+                                                            <Tag color="default" style={{ fontSize: 11 }}>
+                                                                CI: {p.documento_identidad}
+                                                            </Tag>
+                                                        )}
+                                                    </Space>
+                                                </Select.Option>
+                                            );
+                                        })}
+                                    </Select>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Opción 3: Nombre manual */}
+                        <div style={{
+                            padding: '10px 14px',
+                            border: `1px solid ${tipoCliente === 'MANUAL' ? '#faad14' : '#d9d9d9'}`,
+                            borderRadius: 8,
+                            background: tipoCliente === 'MANUAL' ? '#fffbe6' : '#fafafa',
+                        }}>
+                            <Radio value="MANUAL">
+                                <strong style={{ fontSize: 14 }}>✍️ Nombre Manual (Cliente Particular)</strong>
+                            </Radio>
+                            <div style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 24, marginTop: 4, marginBottom: 8 }}>
+                                Para registrar el nombre de un cliente que no tiene ficha clínica.
+                            </div>
+
+                            {tipoCliente === 'MANUAL' && (
+                                <div style={{ marginLeft: 24, marginTop: 8 }}>
+                                    <Input
+                                        prefix={<UserOutlined style={{ color: '#8c8c8c' }} />}
+                                        placeholder="Ej. Juan Pérez"
+                                        value={pacienteNombreManual}
+                                        onChange={(e) => setPacienteNombreManual(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </Radio.Group>
+                </div>
+            </Modal>
         </Row>
     );
 };
