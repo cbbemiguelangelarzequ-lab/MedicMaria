@@ -65,6 +65,8 @@ const PuntoVenta = () => {
     const [tipoCliente, setTipoCliente] = useState('MOSTRADOR'); // 'MOSTRADOR' | 'REGISTRADO' | 'MANUAL'
     const [pacienteIdSeleccionado, setPacienteIdSeleccionado] = useState(null);
     const [pacienteNombreManual, setPacienteNombreManual] = useState('');
+    const [pacienteEdadManual, setPacienteEdadManual] = useState('');
+    const [pacienteOrigenManual, setPacienteOrigenManual] = useState('');
 
     // Cargar pacientes registrados al montar el componente
     useEffect(() => {
@@ -192,10 +194,16 @@ const PuntoVenta = () => {
             }
             const p = pacientes.find((item) => item.id === pacienteIdSeleccionado);
             if (p) {
-                pacienteNombre = `${p.nombres} ${p.apellidos}`.trim();
+                let nameStr = `${p.nombres} ${p.apellidos}`.trim();
+                if (p.direccion) nameStr += ` - De: ${p.direccion}`;
+                pacienteNombre = nameStr;
             }
         } else if (tipoCliente === 'MANUAL') {
-            pacienteNombre = pacienteNombreManual.trim() || null;
+            const parts = [];
+            if (pacienteNombreManual.trim()) parts.push(pacienteNombreManual.trim());
+            if (pacienteEdadManual.trim()) parts.push(`${pacienteEdadManual.trim()} años`);
+            if (pacienteOrigenManual.trim()) parts.push(`De: ${pacienteOrigenManual.trim()}`);
+            pacienteNombre = parts.length > 0 ? parts.join(' - ') : null;
         }
 
         setModalVentaVisible(false);
@@ -205,6 +213,8 @@ const PuntoVenta = () => {
         setTipoCliente('MOSTRADOR');
         setPacienteIdSeleccionado(null);
         setPacienteNombreManual('');
+        setPacienteEdadManual('');
+        setPacienteOrigenManual('');
     };
 
     const procesarVenta = async (pacienteNombre = null) => {
@@ -589,13 +599,29 @@ const PuntoVenta = () => {
 
                             {tipoCliente === 'MANUAL' && (
                                 <div style={{ marginLeft: 24, marginTop: 8 }}>
-                                    <Input
-                                        prefix={<UserOutlined style={{ color: '#8c8c8c' }} />}
-                                        placeholder="Ej. Juan Pérez"
-                                        value={pacienteNombreManual}
-                                        onChange={(e) => setPacienteNombreManual(e.target.value)}
-                                        autoFocus
-                                    />
+                                    <Space direction="vertical" style={{ width: '100%' }}>
+                                        <Input
+                                            prefix={<UserOutlined style={{ color: '#8c8c8c' }} />}
+                                            placeholder="Nombre del paciente (Ej. Juan Pérez)"
+                                            value={pacienteNombreManual}
+                                            onChange={(e) => setPacienteNombreManual(e.target.value)}
+                                            autoFocus
+                                        />
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <Input
+                                                placeholder="Edad (Ej. 35)"
+                                                value={pacienteEdadManual}
+                                                onChange={(e) => setPacienteEdadManual(e.target.value)}
+                                                style={{ width: '120px' }}
+                                            />
+                                            <Input
+                                                placeholder="De donde es (Ej. La Paz)"
+                                                value={pacienteOrigenManual}
+                                                onChange={(e) => setPacienteOrigenManual(e.target.value)}
+                                                style={{ flex: 1 }}
+                                            />
+                                        </div>
+                                    </Space>
                                 </div>
                             )}
                         </div>

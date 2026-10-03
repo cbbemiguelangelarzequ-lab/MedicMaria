@@ -770,22 +770,13 @@ const HistoriaClinica = () => {
 
                     <Divider orientation="left" plain>Datos de la Consulta</Divider>
                     <Row gutter={16}>
-                        <Col span={16}>
+                        <Col span={24}>
                             <Form.Item
                                 name="motivo_consulta"
                                 label="Motivo de la consulta"
                                 rules={[{ required: true, message: 'Ingrese el motivo' }]}
                             >
                                 <AntInput />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                name="honorarios"
-                                label="Honorarios / Servicio (Bs.)"
-                                tooltip="Costo por la consulta médica o aplicación de medicamentos"
-                            >
-                                <InputNumber min={0} style={{ width: '100%' }} prefix="Bs." />
                             </Form.Item>
                         </Col>
                     </Row>

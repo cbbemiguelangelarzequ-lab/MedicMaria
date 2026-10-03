@@ -28,6 +28,7 @@ const HistorialVentas = () => {
                     precio_unitario,
                     total,
                     observaciones,
+                    paciente_nombre,
                     lotes(costo_compra, codigo_lote),
                     medicamentos(nombre)
                 `)
@@ -49,10 +50,15 @@ const HistorialVentas = () => {
                         id_grupo: fechaMinuto,
                         fecha_exacta: mov.fecha,
                         fecha_formateada: new Date(mov.fecha).toLocaleString('es-BO'),
+                        paciente_nombre: mov.paciente_nombre,
                         items: [],
                         total_venta: 0,
                         ganancia_total: 0
                     };
+                }
+                
+                if (mov.paciente_nombre && !grupos[fechaMinuto].paciente_nombre) {
+                    grupos[fechaMinuto].paciente_nombre = mov.paciente_nombre;
                 }
 
                 const precioVenta = mov.precio_unitario || 0;
@@ -182,6 +188,12 @@ const HistorialVentas = () => {
                             <Text type="secondary" style={{ fontSize: '12px' }}>Recibo de Venta / Dispensación</Text>
                             <br />
                             <Text type="secondary" style={{ fontSize: '12px' }}>Fecha: {reciboSeleccionado.fecha_formateada}</Text>
+                            {reciboSeleccionado.paciente_nombre && (
+                                <>
+                                    <br />
+                                    <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'bold' }}>Paciente: {reciboSeleccionado.paciente_nombre}</Text>
+                                </>
+                            )}
                         </div>
 
                         <div style={{ borderBottom: '1px solid #f0f0f0', marginBottom: '10px', paddingBottom: '5px' }}>
