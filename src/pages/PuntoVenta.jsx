@@ -509,7 +509,7 @@ const PuntoVenta = () => {
                             cursor: 'pointer'
                         }} onClick={() => setTipoCliente('MOSTRADOR')}>
                             <Radio value="MOSTRADOR">
-                                <strong style={{ fontSize: 14 }}>🏪 Venta Mostrador (Rápida / Sin registro)</strong>
+                                <strong style={{ fontSize: 14 }}>Venta Mostrador (Rápida / Sin registro)</strong>
                             </Radio>
                             <div style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 24, marginTop: 4 }}>
                                 Para clientes que solo compran medicamentos al paso. No requiere historia ni paciente.
@@ -524,7 +524,7 @@ const PuntoVenta = () => {
                             background: tipoCliente === 'REGISTRADO' ? '#e6f7ff' : '#fafafa',
                         }}>
                             <Radio value="REGISTRADO">
-                                <strong style={{ fontSize: 14 }}>👤 Paciente Registrado en la Clínica</strong>
+                                <strong style={{ fontSize: 14 }}>Paciente Registrado en la Clínica</strong>
                             </Radio>
                             <div style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 24, marginTop: 4, marginBottom: 8 }}>
                                 Selecciona un paciente existente. Evita errores ortográficos y lo vincula a su historial.
@@ -581,7 +581,7 @@ const PuntoVenta = () => {
                             background: tipoCliente === 'MANUAL' ? '#fffbe6' : '#fafafa',
                         }}>
                             <Radio value="MANUAL">
-                                <strong style={{ fontSize: 14 }}>✍️ Nombre Manual (Cliente Particular)</strong>
+                                <strong style={{ fontSize: 14 }}>Nombre Manual (Cliente Particular)</strong>
                             </Radio>
                             <div style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 24, marginTop: 4, marginBottom: 8 }}>
                                 Para registrar el nombre de un cliente que no tiene ficha clínica.
