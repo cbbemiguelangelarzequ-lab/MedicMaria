@@ -195,7 +195,10 @@ const PuntoVenta = () => {
             const p = pacientes.find((item) => item.id === pacienteIdSeleccionado);
             if (p) {
                 let nameStr = `${p.nombres} ${p.apellidos}`.trim();
-                if (p.direccion) nameStr += ` - De: ${p.direccion}`;
+                if (pacienteEdadManual.trim()) nameStr += ` - ${pacienteEdadManual.trim()} años`;
+                if (pacienteOrigenManual.trim() || p.direccion) {
+                    nameStr += ` - De: ${pacienteOrigenManual.trim() || p.direccion}`;
+                }
                 pacienteNombre = nameStr;
             }
         } else if (tipoCliente === 'MANUAL') {
@@ -579,6 +582,20 @@ const PuntoVenta = () => {
                                             );
                                         })}
                                     </Select>
+                                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                        <Input
+                                            placeholder="Edad (Ej. 35)"
+                                            value={pacienteEdadManual}
+                                            onChange={(e) => setPacienteEdadManual(e.target.value)}
+                                            style={{ width: '120px' }}
+                                        />
+                                        <Input
+                                            placeholder="De donde es (Ej. La Paz)"
+                                            value={pacienteOrigenManual}
+                                            onChange={(e) => setPacienteOrigenManual(e.target.value)}
+                                            style={{ flex: 1 }}
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
